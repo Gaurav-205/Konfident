@@ -82,11 +82,15 @@ router.post('/login', authLimiter, async (req, res) => {
   
   let to = req.session.redirectTo;
   if (to) {
-    const isDev = isUserDeveloper(row);
-    if (!isDev) {
-      if (to.startsWith('/admin') && row.role !== 'admin') to = null;
-      else if (to.startsWith('/student') && row.role !== 'student') to = null;
-      else if (to.startsWith('/mentor') && row.role !== 'mentor') to = null;
+    if (!h.isSafeLocalPath(to)) {
+      to = null;
+    } else {
+      const isDev = isUserDeveloper(row);
+      if (!isDev) {
+        if (to.startsWith('/admin') && row.role !== 'admin') to = null;
+        else if (to.startsWith('/student') && row.role !== 'student') to = null;
+        else if (to.startsWith('/mentor') && row.role !== 'mentor') to = null;
+      }
     }
   }
 
@@ -249,11 +253,15 @@ router.get(['/auth/google/callback', '/api/auth/callback/google'], async (req, r
 
   let to = req.session.redirectTo;
   if (to) {
-    const isDev = isUserDeveloper(user);
-    if (!isDev) {
-      if (to.startsWith('/admin') && user.role !== 'admin') to = null;
-      else if (to.startsWith('/student') && user.role !== 'student') to = null;
-      else if (to.startsWith('/mentor') && user.role !== 'mentor') to = null;
+    if (!h.isSafeLocalPath(to)) {
+      to = null;
+    } else {
+      const isDev = isUserDeveloper(user);
+      if (!isDev) {
+        if (to.startsWith('/admin') && user.role !== 'admin') to = null;
+        else if (to.startsWith('/student') && user.role !== 'student') to = null;
+        else if (to.startsWith('/mentor') && user.role !== 'mentor') to = null;
+      }
     }
   }
   const redirectTo = to || homeFor(user.role);
