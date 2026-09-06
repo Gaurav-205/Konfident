@@ -87,4 +87,5 @@ async function test(name, fn) {
   console.log(`\nModels Tests Summary: ${pass} passed, ${fail} failed.\n`);
   await mongoose.disconnect();
   if (fail > 0) process.exit(1);
+  process.exit(0);
 })();

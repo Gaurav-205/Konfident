@@ -61,7 +61,7 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 
   const hashToCheck = (row && row.password_hash) ? row.password_hash : DUMMY_HASH;
-  const passwordOk = bcrypt.compareSync(password, hashToCheck);
+  const passwordOk = await bcrypt.compare(password, hashToCheck);
 
   if (!row || !passwordOk) {
     logAudit(req, 'AUTH_LOGIN_FAILED', { email });
@@ -398,7 +398,7 @@ router.post('/reset-password/:token', authLimiter, async (req, res) => {
   if (pwError) return rerender(pwError);
   if (password !== confirm) return rerender('Passwords do not match.');
 
-  const pwHash = bcrypt.hashSync(password, 10);
+  const pwHash = await bcrypt.hash(password, 10);
   const nowMs = Date.now();
 
   await User.findByIdAndUpdate(record.user_id, {
@@ -430,33 +430,35 @@ router.post(['/profile', '/profile/update'], requireLogin, async (req, res) => {
   me.id = me._id;
 
   const name = String(req.body.name || '').trim();
+  const phone = String(req.body.phone || '').trim() || null;
+  const branch = me.role === 'student' ? (String(req.body.branch || '').trim() || null) : me.branch;
+  const squad = me.role === 'student' ? (String(req.body.squad || '').trim() || null) : me.squad;
+  const resume_url = me.role === 'student' ? (String(req.body.resume_url || '').trim() || null) : me.resume_url;
+
+  const currentFormState = { ...me, name: name || me.name, phone, branch, squad, resume_url };
+
   if (!name || name.length < 2) {
     return res.status(400).render('profile', {
       title: 'My profile',
-      me,
+      me: currentFormState,
       error: 'Full name must be at least 2 characters.',
       ok: null,
       googleConfigured: google.isConfigured(),
     });
   }
-  const phone = String(req.body.phone || '').trim() || null;
   if (phone && !h.isValidPhone(phone)) {
     return res.status(400).render('profile', {
       title: 'My profile',
-      me,
+      me: currentFormState,
       error: 'Please enter a valid contact phone number.',
       ok: null,
       googleConfigured: google.isConfigured(),
     });
   }
-  const branch = me.role === 'student' ? (String(req.body.branch || '').trim() || null) : me.branch;
-  const squad = me.role === 'student' ? (String(req.body.squad || '').trim() || null) : me.squad;
-  const resume_url = me.role === 'student' ? (String(req.body.resume_url || '').trim() || null) : me.resume_url;
-
   if (resume_url && !h.isValidUrl(resume_url)) {
     return res.status(400).render('profile', {
       title: 'My profile',
-      me,
+      me: currentFormState,
       error: 'Resume link must be a valid URL starting with http:// or https://',
       ok: null,
       googleConfigured: google.isConfigured(),
@@ -511,19 +513,20 @@ router.post('/profile/password', requireLogin, authLimiter, async (req, res) => 
     res.redirect('/profile#password');
   };
 
-  if (!bcrypt.compareSync(current, me.password_hash || '')) {
+  const isCurrentValid = await bcrypt.compare(current, me.password_hash || '');
+  if (!isCurrentValid) {
     logAudit(req, 'AUTH_PASSWORD_CHANGE_FAILED', { reason: 'wrong current password' }, me._id);
     return fail('Your current password is incorrect.');
   }
   const pwError = h.validatePassword(next1);
   if (pwError) return fail(pwError);
   if (next1 !== next2) return fail('New passwords do not match.');
-  if (bcrypt.compareSync(next1, me.password_hash || '')) {
+  if (await bcrypt.compare(next1, me.password_hash || '')) {
     return fail('Your new password must be different from your current one.');
   }
 
   const nowMs = Date.now();
-  me.password_hash = bcrypt.hashSync(next1, 10);
+  me.password_hash = await bcrypt.hash(next1, 10);
   me.sessions_invalid_before = nowMs;
   await me.save();
 

@@ -137,8 +137,13 @@ if (!process.env.VERCEL) {
     function gracefulShutdown(signal) {
       console.log(`\nReceived ${signal}. Shutting down worker gracefully (PID: ${process.pid})...`);
       if (server) {
-        server.close(() => {
-          try { if (typeof db.close === 'function') db.close(); } catch (_) {}
+        server.close(async () => {
+          if (!cluster.isWorker || cluster.worker.id === 1) {
+            console.log('HTTP server closed. Closing database connection...');
+          }
+          try {
+            if (typeof db.close === 'function') await db.close();
+          } catch (_) {}
           process.exit(0);
         });
         setTimeout(() => process.exit(0), 5000).unref();

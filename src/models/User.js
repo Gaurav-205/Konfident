@@ -30,5 +30,7 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ role: 1, active: 1 });
 userSchema.index({ role: 1, name: 1 });
+userSchema.index({ active: 1, can_technical: 1 });
+userSchema.index({ active: 1, can_hr: 1 });
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

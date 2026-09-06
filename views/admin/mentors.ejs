@@ -82,7 +82,7 @@
           <td class="num font-mono"><%= m.upcoming %></td>
           <td class="num font-mono"><%= m.done %></td>
           <td class="num">
-            <button type="button" class="btn sm" onclick='openEditMentorModal(<%- JSON.stringify({ id: m.id, name: m.name, phone: m.phone || "", can_technical: !!m.can_technical, can_hr: !!m.can_hr, active: !!m.active }).replace(/'/g, "&#39;").replace(/</g, "\\u003c") %>)'>Edit Profile</button>
+            <button type="button" class="btn sm" data-mentor="<%- h.escapeHtml(JSON.stringify({ id: m.id, name: m.name, phone: m.phone || '', can_technical: !!m.can_technical, can_hr: !!m.can_hr, active: !!m.active })) %>" onclick="openEditMentorModal(this)">Edit Profile</button>
           </td>
         </tr>
       <% }); %>
@@ -187,9 +187,13 @@ function filterMentorsTable() {
   if (label) label.textContent = 'Showing ' + count + ' evaluator(s)';
 }
 
-window.openEditMentorModal = function (mentor) {
+window.openEditMentorModal = function (mentorOrBtn) {
   var modal = document.getElementById('editMentorModal');
-  if (!modal || !mentor) return;
+  if (!modal || !mentorOrBtn) return;
+  var mentor = mentorOrBtn;
+  if (mentorOrBtn instanceof HTMLElement || (mentorOrBtn.dataset && mentorOrBtn.dataset.mentor)) {
+    try { mentor = JSON.parse(mentorOrBtn.dataset.mentor); } catch (e) { console.error('Error parsing mentor data:', e); return; }
+  }
 
   var titleEl = document.getElementById('edit_mentor_title');
   if (titleEl) {

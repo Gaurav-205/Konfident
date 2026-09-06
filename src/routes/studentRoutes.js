@@ -42,7 +42,7 @@ router.get(['/', '/dashboard'], async (req, res) => {
   const today = h.today();
   const [s, openSlots] = await Promise.all([
     q.studentSummary(req.session.user.id, req._resolvedUser),
-    Slot.find({ status: 'open', slot_date: { $gte: today } }).lean(),
+    Slot.find({ status: 'open', slot_date: { $gte: today } }).select('type slot_date start_time').lean(),
   ]);
 
   if (!s || !s.student) {
@@ -135,6 +135,11 @@ router.get('/slots', microCacheMiddleware(3000), async (req, res) => {
 
 router.post('/book', actionLimiter, async (req, res) => {
   const slotId = req.body.slot_id;
+  if (!slotId || !mongoose.Types.ObjectId.isValid(slotId)) {
+    flash(req, 'err', 'Selected slot was not found.');
+    return res.redirect('/student');
+  }
+
   const studentId = req.session.user.id;
   const student = await User.findById(studentId).lean();
 
@@ -180,14 +185,29 @@ router.post('/book', actionLimiter, async (req, res) => {
     return res.redirect(`/student/slots?type=${slot.type}`);
   }
 
-  const newIv = await Interview.create({
-    slot_id: slot._id,
-    student_id: student._id,
-    mentor_id: slot.mentor_id,
-    type: slot.type,
-    status: 'booked',
-    attendance: 'pending',
-  });
+  // Post-claim re-check: guards against concurrent requests across tabs
+  const limitRecheck = await h.checkWeeklyInterviewLimit(null, studentId, slot.type, slot.slot_date);
+  if (limitRecheck.reached) {
+    await Slot.findByIdAndUpdate(slot._id, { $set: { status: 'open' } });
+    flash(req, 'err', `Weekly limit reached: You have already booked ${limitRecheck.count} of ${limitRecheck.maxAllowed} allowed ${slot.type} interview(s) for this week.`);
+    return res.redirect('/student');
+  }
+
+  let newIv;
+  try {
+    newIv = await Interview.create({
+      slot_id: slot._id,
+      student_id: student._id,
+      mentor_id: slot.mentor_id,
+      type: slot.type,
+      status: 'booked',
+      attendance: 'pending',
+    });
+  } catch (err) {
+    // Roll back slot state so it doesn't stay orphaned as booked
+    await Slot.findByIdAndUpdate(slot._id, { $set: { status: 'open' } });
+    throw err;
+  }
 
   const mentor = await User.findById(slot.mentor_id).lean();
 
@@ -216,32 +236,28 @@ async function cancelBooking(req, res) {
   const ivId = req.params.id || (req.body && req.body.interview_id);
   const studentId = req.session.user.id;
 
-  if (ivId && !mongoose.Types.ObjectId.isValid(ivId)) {
+  if (!ivId || !mongoose.Types.ObjectId.isValid(ivId)) {
     flash(req, 'err', 'Active booking not found.');
     return res.redirect('/student');
   }
 
-  const iv = await Interview.findOne({ _id: ivId, student_id: studentId, status: 'booked' }).populate('slot_id').populate('mentor_id').lean();
+  // Atomic cancellation: only one concurrent cancel can succeed
+  const iv = await Interview.findOneAndUpdate(
+    { _id: ivId, student_id: studentId, status: 'booked' },
+    { $set: { status: 'cancelled' } },
+    { returnDocument: 'before' }
+  ).populate('slot_id').populate('mentor_id').lean();
+
   if (!iv) {
     flash(req, 'err', 'Active booking not found.');
     return res.redirect('/student');
   }
 
   const slot = iv.slot_id;
-  if (!slot) {
-    flash(req, 'err', 'Associated slot not found.');
-    return res.redirect('/student');
+  if (slot) {
+    await Slot.findByIdAndUpdate(slot._id, { $set: { status: 'open' } });
+    purgeSlotCaches();
   }
-
-  if ((slot.slot_date + ' ' + slot.start_time) <= h.nowMinute()) {
-    flash(req, 'err', 'Cannot cancel a slot that has already started or passed.');
-    return res.redirect('/student');
-  }
-
-  await Interview.findByIdAndUpdate(iv._id, { $set: { status: 'cancelled' } });
-  await Slot.findByIdAndUpdate(slot._id, { $set: { status: 'open' } });
-  purgeSlotCaches();
-
   const student = await User.findById(studentId).lean();
   const mentor = iv.mentor_id;
 
@@ -261,7 +277,7 @@ async function cancelBooking(req, res) {
     cancelledBy: 'student',
   }).catch((err) => console.error('Cancellation notice email failed:', err));
 
-  logAudit(req, 'STUDENT_CANCEL_BOOKING', { interview_id: iv._id, slot_id: slot._id }, studentId);
+  logAudit(req, 'STUDENT_CANCEL_BOOKING', { interview_id: iv._id, slot_id: slot ? slot._id : null }, studentId);
   flash(req, 'ok', 'Booking cancelled. The slot has been released back for other students.');
   res.redirect('/student');
 }
@@ -280,9 +296,17 @@ async function submitFeedback(req, res) {
     return res.redirect('/student');
   }
 
+  if (iv.status === 'cancelled') {
+    flash(req, 'err', 'Cannot submit feedback for a cancelled interview.');
+    return res.redirect('/student');
+  }
+
   const satisfaction = Number(req.body.satisfaction);
   const structured = Number(req.body.structured);
-  const hr_relevant = req.body.hr_relevant ? Number(req.body.hr_relevant) : null;
+  // Coerce to the 0 | 1 | null the schema enum accepts — anything else would
+  // fail validation on the upsert and surface as an unhandled 500.
+  let hr_relevant = (req.body.hr_relevant === '' || req.body.hr_relevant == null) ? null : Number(req.body.hr_relevant);
+  if (hr_relevant !== 0 && hr_relevant !== 1) hr_relevant = null;
   const feedback_text = String(req.body.feedback_text || '').trim() || null;
 
   if (!Number.isInteger(satisfaction) || satisfaction < 1 || satisfaction > 5) {
@@ -295,22 +319,22 @@ async function submitFeedback(req, res) {
     return res.redirect('/student');
   }
 
-  const existing = await StudentFeedback.findOne({ interview_id: iv._id }).lean();
-  if (existing) {
-    await StudentFeedback.findByIdAndUpdate(existing._id, {
-      $set: { satisfaction, structured, hr_relevant, feedback_text, submitted_at: new Date() },
-    });
-  } else {
-    await StudentFeedback.create({
-      interview_id: iv._id,
-      student_id: studentId,
-      mentor_id: iv.mentor_id,
-      satisfaction,
-      structured,
-      hr_relevant,
-      feedback_text,
-    });
-  }
+  await StudentFeedback.findOneAndUpdate(
+    { interview_id: iv._id },
+    {
+      $set: {
+        interview_id: iv._id,
+        student_id: studentId,
+        mentor_id: iv.mentor_id,
+        satisfaction,
+        structured,
+        hr_relevant,
+        feedback_text,
+        submitted_at: new Date(),
+      },
+    },
+    { upsert: true, returnDocument: 'after' }
+  );
 
   logAudit(req, 'STUDENT_SUBMIT_FEEDBACK', { interview_id: iv._id, satisfaction }, studentId);
   flash(req, 'ok', 'Thank you for submitting your feedback!');
@@ -334,7 +358,8 @@ router.get('/api/slots/available', async (req, res) => {
   const student = req._resolvedUser || await User.findById(studentId).lean();
   const now = h.nowMinute();
 
-  const query = { type, status: 'open', mentor_id: { $ne: studentId } };
+  const today = h.today();
+  const query = { type, status: 'open', slot_date: { $gte: today }, mentor_id: { $ne: studentId } };
   if (mentorId) query.mentor_id = mentorId;
 
   const rawSlots = await Slot.find(query).populate('mentor_id', 'name email active').lean();

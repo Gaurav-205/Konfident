@@ -141,7 +141,7 @@ router.post('/slots', async (req, res) => {
         const curStart = `${startH}:${startM}`;
         
         let totalEndMin = hPart * 60 + mPart + durMin;
-        if (totalEndMin > 24 * 60) totalEndMin = 24 * 60 - 1;
+        if (totalEndMin >= 24 * 60) totalEndMin = 24 * 60 - 1;
         const endH = String(Math.floor(totalEndMin / 60)).padStart(2, '0');
         const endM = String(totalEndMin % 60).padStart(2, '0');
         const curEnd = `${endH}:${endM}`;
@@ -217,7 +217,7 @@ router.post('/slots/:id/edit', validateId('id'), async (req, res) => {
 
     let [hPart, mPart] = cleanStart.split(':').map(Number);
     let totalEndMin = hPart * 60 + mPart + durMin;
-    if (totalEndMin > 24 * 60) totalEndMin = 24 * 60 - 1;
+    if (totalEndMin >= 24 * 60) totalEndMin = 24 * 60 - 1;
     const endH = String(Math.floor(totalEndMin / 60)).padStart(2, '0');
     const endM = String(totalEndMin % 60).padStart(2, '0');
     const cleanEnd = `${endH}:${endM}`;
@@ -341,6 +341,11 @@ router.post('/interview/:id/attendance', validateId('id'), async (req, res) => {
     return res.redirect('/mentor');
   }
 
+  if (iv.status === 'cancelled') {
+    flash(req, 'err', 'Cannot update attendance for a cancelled interview.');
+    return res.redirect('/mentor');
+  }
+
   const attendance = req.body.attendance === 'absent' ? 'absent' : 'attended';
   await Interview.findByIdAndUpdate(iv._id, { $set: { attendance } });
 
@@ -359,13 +364,26 @@ router.post('/interview/:id/evaluate', validateId('id'), async (req, res) => {
     return res.redirect('/mentor');
   }
 
+  if (iv.status === 'cancelled') {
+    flash(req, 'err', 'Cannot evaluate a cancelled interview.');
+    return res.redirect('/mentor');
+  }
+
+  // A mentor who explicitly marked the candidate absent should not be able to
+  // (accidentally, via a stale tab or double submit) file a score that would
+  // silently flip them back to "attended".
+  if (iv.attendance === 'absent') {
+    flash(req, 'err', 'This candidate is marked Absent. Re-mark attendance as Attended before submitting an evaluation.');
+    return res.redirect(`/mentor/interview/${iv._id}`);
+  }
+
   try {
     const total = q.computeTotal(iv.type, req.body);
     const feedback = String(req.body.feedback || '').trim();
 
     const evalData = {
       interview_id: iv._id,
-      mentor_id: mentorId,
+      mentor_id: iv.mentor_id || mentorId,
       student_id: iv.student_id ? (iv.student_id._id || iv.student_id) : null,
       type: iv.type,
       resume_marks: iv.type === 'technical' ? Number(req.body.resume_marks ?? req.body.resume ?? 0) : 0,
@@ -378,12 +396,11 @@ router.post('/interview/:id/evaluate', validateId('id'), async (req, res) => {
       submitted_at: new Date(),
     };
 
-    const existingEval = await Evaluation.findOne({ interview_id: iv._id });
-    if (existingEval) {
-      await Evaluation.findByIdAndUpdate(existingEval._id, { $set: evalData });
-    } else {
-      await Evaluation.create(evalData);
-    }
+    await Evaluation.findOneAndUpdate(
+      { interview_id: iv._id },
+      { $set: evalData },
+      { upsert: true, returnDocument: 'after' }
+    );
 
     await Interview.findByIdAndUpdate(iv._id, {
       $set: { status: 'completed', attendance: 'attended' },

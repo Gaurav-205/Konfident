@@ -56,9 +56,13 @@
   }
 
   // Manage Slot Modal Logic
-  window.openSlotManageModal = function (slot) {
+  window.openSlotManageModal = function (slotOrBtn) {
     var modal = document.getElementById('manageSlotModal');
-    if (!modal || !slot) return;
+    if (!modal || !slotOrBtn) return;
+    var slot = slotOrBtn;
+    if (slotOrBtn instanceof HTMLElement || (slotOrBtn.dataset && slotOrBtn.dataset.slot)) {
+      try { slot = JSON.parse(slotOrBtn.dataset.slot); } catch (e) { console.error('Error parsing slot data:', e); return; }
+    }
 
     var titleEl = document.getElementById('mng_title');
     if (titleEl) {

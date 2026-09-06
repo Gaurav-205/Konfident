@@ -45,6 +45,8 @@
     });
   }
 
+  var badges = document.querySelectorAll('.countdown-badge[data-start]');
+  if (!badges.length) return;
   setInterval(tick, 1000);
   tick();
 })();

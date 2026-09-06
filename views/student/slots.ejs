@@ -94,7 +94,7 @@
 
     <form method="get" id="filter-form" class="btn-row" style="margin:0">
       <input type="hidden" name="type" id="current-type" value="<%= type %>">
-      <select name="mentor" id="mentor-select" onchange="fetchLatestSlots()" style="font-size:13px;padding:6px 12px;border-radius:var(--radius-pill);max-width:200px">
+      <select name="mentor" id="mentor-select" style="font-size:13px;padding:6px 12px;border-radius:var(--radius-pill);max-width:200px">
         <option value="">All mentors</option>
         <% (typeof mentors !== 'undefined' ? mentors : []).forEach(function(m){ %>
           <option value="<%= m.id %>" <%= (String(typeof selectedMentor !== 'undefined' && selectedMentor || (typeof mentorFilter !== 'undefined' && mentorFilter) || '') === String(m.id)) ? 'selected' : '' %>><%= m.name %></option>

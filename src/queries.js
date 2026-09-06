@@ -19,6 +19,7 @@ async function batchAttachDetails(ivs) {
 }
 
 async function interviewsForStudent(studentId) {
+  if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) return [];
   const ivs = await Interview.find({ student_id: studentId, status: { $ne: 'cancelled' } })
     .populate('slot_id')
     .populate('mentor_id', 'name email')
@@ -30,6 +31,7 @@ async function interviewsForStudent(studentId) {
 }
 
 async function interviewsForMentor(mentorId, status = null) {
+  if (!mentorId || !mongoose.Types.ObjectId.isValid(mentorId)) return [];
   const query = { mentor_id: mentorId };
   if (status) query.status = status;
 
@@ -122,6 +124,7 @@ function flattenInterview(iv, evalDoc = null, sfDoc = null) {
 
 /** Per-student roll-up used by student dashboard, admin reports and exports. */
 async function studentSummary(studentId, existingStudent = null) {
+  if (!existingStudent && (!studentId || !mongoose.Types.ObjectId.isValid(studentId))) return null;
   const student = existingStudent || await User.findById(studentId).lean();
   if (!student) return null;
   student.id = student._id;
@@ -173,7 +176,7 @@ async function studentSummary(studentId, existingStudent = null) {
 
 async function allStudentSummaries() {
   const [students, allIvs] = await Promise.all([
-    User.find({ role: 'student' }).sort({ name: 1 }).lean(),
+    User.find({ role: 'student' }).select('-password_hash -google_access_token -google_refresh_token').sort({ name: 1 }).lean(),
     allInterviews(),
   ]);
 
@@ -301,7 +304,7 @@ async function mentorsList(type) {
   if (type === 'hr') query.can_hr = 1;
   else if (type === 'technical') query.can_technical = 1;
 
-  const list = await User.find(query).sort({ name: 1 }).lean();
+  const list = await User.find(query).select('-password_hash -google_access_token -google_refresh_token').sort({ name: 1 }).lean();
   return list.map(m => ({ ...m, id: m._id }));
 }
 
@@ -313,7 +316,7 @@ async function mentorsWithOpenSlots() {
     Slot.find({
       status: 'open',
       slot_date: { $gte: today },
-    }).lean(),
+    }).select('mentor_id slot_date start_time type').lean(),
   ]);
 
   const upcomingOpen = openSlots.filter(s => (s.slot_date + ' ' + s.start_time) > now);

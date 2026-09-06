@@ -96,6 +96,13 @@ test('linkify() converts URLs to anchor tags', () => {
   assert.ok(html.includes('<a href="https://meet.google.com/abc-defg-hij"'));
 });
 
+test('linkify() keeps query parameters after an ampersand in the href', () => {
+  const text = 'Book: https://calendar.google.com/calendar/appointments/x?a=1&b=2 now';
+  const html = h.linkify(text);
+  assert.ok(html.includes('href="https://calendar.google.com/calendar/appointments/x?a=1&amp;b=2"'));
+  assert.ok(!html.includes('>amp;'), 'trailing "amp;" text leaked outside the anchor');
+});
+
 test('isValidEmail() validates email formats', () => {
   assert.strictEqual(h.isValidEmail('test@konfident.in'), true);
   assert.strictEqual(h.isValidEmail('not-an-email'), false);

@@ -78,11 +78,11 @@ function createRateLimiter(options = {}) {
     next();
   };
 
+  // Must clear the exact bucket rlKey() filled — after userKey was added to the
+  // key, a hand-rolled `ip|email` string here silently matched nothing, so a
+  // successful login never actually reset the caller's failed-attempt count.
   middleware.reset = function(req) {
-    const emailKey = (req.body && req.body.email) ? String(req.body.email).trim().toLowerCase() : '';
-    const ipKey = req.ip || (req.connection && req.connection.remoteAddress) || 'unknown-ip';
-    const key = `${ipKey}|${emailKey}`;
-    hits.delete(key);
+    hits.delete(rlKey(req));
   };
 
   return middleware;

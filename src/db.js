@@ -26,9 +26,9 @@ async function connectDb() {
   connectionPromise = (async () => {
     try {
       const conn = await mongoose.connect(MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 5000,
-        socketTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
         maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE || '50', 10),
         minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '5', 10),
         maxIdleTimeMS: 60000,
@@ -69,6 +69,10 @@ connectDb().catch((err) => {
 module.exports = {
   mongoose,
   connectDb,
+  close: async () => {
+    connectionPromise = null;
+    return mongoose.disconnect();
+  },
   ...models,
   isPostgres: false,
   driver: 'mongodb',
