@@ -14,13 +14,16 @@ const { sessionRehydrateMiddleware } = require('./middleware/sessionAuth');
 
 const compression = require('compression');
 
+const { requestConcurrencyMiddleware, getWorkerDiagnostics } = require('./middleware/loadBalancer');
+
 const app = express();
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+app.use(requestConcurrencyMiddleware);
 app.use(securityHeaders);
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV === 'production') {
   app.enable('view cache');
 }
 
@@ -38,12 +41,16 @@ app.set('views', path.join(__dirname, '..', 'views'));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public'), {
-  maxAge: '30d',
+  maxAge: process.env.NODE_ENV === 'production' ? '30d' : 0,
   etag: true,
   lastModified: true,
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.css') || filePath.endsWith('.js') || filePath.endsWith('.svg') || filePath.endsWith('.woff2')) {
-      res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+    if (process.env.NODE_ENV === 'production') {
+      if (filePath.endsWith('.css') || filePath.endsWith('.js') || filePath.endsWith('.svg') || filePath.endsWith('.woff2')) {
+        res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+      }
+    } else {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     }
   },
 }));
@@ -138,6 +145,16 @@ app.use(csrfProtection);
 // Safe health check endpoint for uptime and orchestrator probes
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy' });
+});
+
+// Cluster and load balancer diagnostics
+app.get('/health/cluster', (req, res) => {
+  const isCluster = require('cluster').isWorker;
+  res.json({
+    status: 'healthy',
+    mode: isCluster ? 'cluster_worker' : 'single_instance',
+    diagnostics: getWorkerDiagnostics(),
+  });
 });
 
 // Detailed health diagnostics for administrators. requireRole re-validates the
