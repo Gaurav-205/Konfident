@@ -148,7 +148,7 @@ async function studentSummary(studentId, existingStudent = null) {
     }
   }
 
-  const scored = (iv) => (iv && iv.status === 'completed' && iv.eval_id != null);
+  const scored = (iv) => (iv && iv.status === 'completed' && iv.attendance === 'attended' && iv.eval_id != null);
   const techScore = scored(byType.technical) ? byType.technical.score : null;
   const hrScore   = scored(byType.hr)        ? byType.hr.score        : null;
   const done = techScore != null && hrScore != null;
@@ -206,7 +206,7 @@ async function allStudentSummaries() {
       }
     }
 
-    const scored = (iv) => (iv && iv.status === 'completed' && iv.eval_id != null);
+    const scored = (iv) => (iv && iv.status === 'completed' && iv.attendance === 'attended' && iv.eval_id != null);
     const techScore = scored(byType.technical) ? byType.technical.score : null;
     const hrScore   = scored(byType.hr)        ? byType.hr.score        : null;
     const done = techScore != null && hrScore != null;
