@@ -241,6 +241,18 @@ async function cancelBooking(req, res) {
     return res.redirect('/student');
   }
 
+  const existing = await Interview.findOne({ _id: ivId, student_id: studentId, status: 'booked' }).populate('slot_id').lean();
+  if (!existing) {
+    flash(req, 'err', 'Active booking not found.');
+    return res.redirect('/student');
+  }
+
+  const existingSlot = existing.slot_id;
+  if (existingSlot && (existingSlot.slot_date + ' ' + existingSlot.start_time) <= h.nowMinute()) {
+    flash(req, 'err', 'Cannot cancel an interview that has already started or passed.');
+    return res.redirect('/student');
+  }
+
   // Atomic cancellation: only one concurrent cancel can succeed
   const iv = await Interview.findOneAndUpdate(
     { _id: ivId, student_id: studentId, status: 'booked' },
@@ -296,8 +308,8 @@ async function submitFeedback(req, res) {
     return res.redirect('/student');
   }
 
-  if (iv.status === 'cancelled') {
-    flash(req, 'err', 'Cannot submit feedback for a cancelled interview.');
+  if (iv.status !== 'completed' || iv.attendance !== 'attended') {
+    flash(req, 'err', 'Feedback can only be submitted for completed interviews that you attended.');
     return res.redirect('/student');
   }
 
