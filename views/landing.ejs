@@ -68,7 +68,7 @@
 
         <p class="hero-sub hero-animate-in">
           The structured mock interview platform connecting students with industry mentors.
-          Real 20-minute live simulations, calibrated 30-point evaluation rubrics, and automated Google Calendar scheduling.
+          Real 20-minute live simulations, calibrated 50-point dual-track evaluation rubrics (30 Technical + 20 HR), and automated Google Calendar scheduling.
         </p>
 
         <div class="hero-cta-group hero-animate-in">
@@ -86,7 +86,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <span>30-Point Calibrated Rubric</span>
+            <span>50-Point Grand Rubric (30 Tech + 20 HR)</span>
           </div>
           <div class="trust-item">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -126,7 +126,7 @@
             <span class="pulse-dot"></span>
           </div>
 
-          <!-- Main Interactive Scorecard Console -->
+          <!-- Main Interactive Scorecard Console (Technical Simulation: 30 Marks Max) -->
           <div class="hero-card-float hero-card-primary">
             <!-- Card Header -->
             <div class="console-header">
@@ -134,7 +134,10 @@
                 <span class="badge-dot-live"></span>
                 <span>Live Technical Simulation</span>
               </div>
-              <span class="console-duration-pill">20:00 Time Block</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="console-duration-pill">20:00 Time Block</span>
+                <span class="pill p-technical" style="font-size:10px;font-weight:700">30 Marks</span>
+              </div>
             </div>
 
             <!-- Participant Strip -->
@@ -164,11 +167,11 @@
               </div>
             </div>
 
-            <!-- Rubric Meters -->
+            <!-- Official Technical Rubric Meters (Section 5 Requirement & src/rubric.js: Resume Readiness 10, Project Defence 10, DSA 10) -->
             <div class="console-rubric-section">
               <div class="rubric-meter-item">
                 <div class="meter-labels">
-                  <span class="meter-name">Data Structures &amp; Algorithms</span>
+                  <span class="meter-name">Resume Readiness</span>
                   <span class="meter-score"><strong>10</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
@@ -178,7 +181,7 @@
 
               <div class="rubric-meter-item">
                 <div class="meter-labels">
-                  <span class="meter-name">System Architecture &amp; CS Core</span>
+                  <span class="meter-name">Project Defence</span>
                   <span class="meter-score"><strong>9</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
@@ -188,7 +191,7 @@
 
               <div class="rubric-meter-item">
                 <div class="meter-labels">
-                  <span class="meter-name">Problem Solving &amp; Optimization</span>
+                  <span class="meter-name">DSA</span>
                   <span class="meter-score"><strong>9</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
@@ -197,18 +200,18 @@
               </div>
             </div>
 
-            <!-- Scorecard Summary Footer -->
+            <!-- Scorecard Summary Footer (28 / 30 Marks = 93.3% -> Outstanding) -->
             <div class="console-footer">
               <div class="console-total-box">
-                <span class="total-caption">Total Evaluated Score</span>
+                <span class="total-caption">Technical Score (Track 1 of 2)</span>
                 <div class="total-value">
                   <span id="heroLiveScore">28</span>
                   <span class="total-denom">/ 30</span>
                 </div>
               </div>
               <div class="console-grade-pill">
-                <span class="grade-label">Grade A+</span>
-                <span class="grade-status">Placement Ready</span>
+                <span class="grade-label">Outstanding</span>
+                <span class="grade-status">93% · Placement Ready</span>
               </div>
             </div>
           </div>
@@ -223,8 +226,8 @@
               </svg>
             </div>
             <div class="analytics-badge-info">
-              <span class="analytics-badge-title">Zero-Bias Rubric Matrix</span>
-              <span class="analytics-badge-sub">Standardized across all cohorts</span>
+              <span class="analytics-badge-title">Calibrated Dual Matrix</span>
+              <span class="analytics-badge-sub">30 Tech + 20 HR = 50 Grand Total</span>
             </div>
           </div>
         </div>
@@ -277,8 +280,8 @@
                 </svg>
               </div>
               <div class="benefit-text">
-                <strong>Transparent 30-Point Scoring Rubric</strong>
-                <span>Know exactly how your DSA syntax, system design depth, communication, and resume alignment are scored.</span>
+                <strong>Calibrated 50-Point Dual Rubric (30 Tech + 20 HR)</strong>
+                <span>Know exactly how your Resume Readiness (10), Project Defence (10), DSA (10), Behavioural Skills (10), and HR Performance (10) are scored.</span>
               </div>
             </li>
 
@@ -377,9 +380,9 @@
       <!-- KPI Strip -->
       <div class="landing-kpi-strip">
         <div class="kpi-item">
-          <span class="kpi-num">30</span>
-          <span class="kpi-label">Point Rubric Scale</span>
-          <span class="kpi-sub">Strictly standardized</span>
+          <span class="kpi-num">50</span>
+          <span class="kpi-label">Grand Total Marks</span>
+          <span class="kpi-sub">30 Technical + 20 HR</span>
         </div>
         <div class="kpi-item">
           <span class="kpi-num">2</span>
@@ -405,14 +408,14 @@
     <div class="landing-container">
       <div class="section-header-center">
         <span class="section-badge">Calibrated Evaluation Framework</span>
-        <h2 class="section-title">Transparent 30-Point &amp; 20-Point Scoring Matrices</h2>
+        <h2 class="section-title">Official 50-Point Dual-Track Scoring Rubric</h2>
         <p class="section-subtitle">
-          Eliminate evaluator subjectivity. Every interview is calibrated across standardized criteria with instant rubrics and actionable post-interview diagnostics.
+          Eliminate evaluator subjectivity. Every interview is calibrated across standardized criteria (30 Technical + 20 HR = 50 Marks Total) with instant rubrics and actionable post-interview diagnostics.
         </p>
       </div>
 
       <div class="rubric-matrix-grid">
-        <!-- Technical Matrix Card -->
+        <!-- Technical Matrix Card (30 Marks) -->
         <div class="rubric-track-card technical-track-card">
           <div class="track-card-header">
             <div class="track-pill technical-pill">
@@ -422,43 +425,43 @@
             <span class="track-total-badge">Max 30 Marks</span>
           </div>
           <p class="track-card-intro">
-            A rigorous 20-minute live session focusing on algorithm design, code efficiency, and architecture fundamentals.
+            A structured 20-minute live simulation evaluating candidate engineering readiness across official Section 5 rubric criteria.
           </p>
 
           <div class="rubric-criteria-list">
             <div class="rubric-criteria-box">
               <div class="criteria-header">
-                <span class="criteria-title">Data Structures &amp; Algorithms</span>
+                <span class="criteria-title">Resume Readiness</span>
                 <span class="criteria-marks">10 Points Max</span>
               </div>
               <p class="criteria-description">
-                Problem comprehension, edge-case identification, optimal time and space complexity choices, and clean logical flow.
+                Validation of resume skills, technical claims, project accuracy, and formatting discipline.
               </p>
             </div>
 
             <div class="rubric-criteria-box">
               <div class="criteria-header">
-                <span class="criteria-title">System Architecture &amp; CS Core</span>
+                <span class="criteria-title">Project Defence</span>
                 <span class="criteria-marks">10 Points Max</span>
               </div>
               <p class="criteria-description">
-                Database indexing, REST/gRPC API structures, concurrency control, system modularity, and memory safety fundamentals.
+                Architecture choices, technology trade-offs, code ownership, and real-world system implementation depth.
               </p>
             </div>
 
             <div class="rubric-criteria-box">
               <div class="criteria-header">
-                <span class="criteria-title">Problem Solving &amp; Code Quality</span>
+                <span class="criteria-title">DSA</span>
                 <span class="criteria-marks">10 Points Max</span>
               </div>
               <p class="criteria-description">
-                Variable semantics, modular function design, debugging agility under hiring pressure, and verbal explanation of trade-offs.
+                Problem comprehension, algorithmic time/space optimization, edge-case handling, and code syntax.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- HR & Behavioral Matrix Card -->
+        <!-- HR & Behavioral Matrix Card (20 Marks) -->
         <div class="rubric-track-card hr-track-card">
           <div class="track-card-header">
             <div class="track-pill hr-pill">
@@ -468,56 +471,56 @@
             <span class="track-total-badge">Max 20 Marks</span>
           </div>
           <p class="track-card-intro">
-            Evaluates professional readiness, structured STAR communication, conflict ownership, and culture fit.
+            A dedicated 20-minute simulation evaluating behavioral competencies, cultural fit, and professional communication.
           </p>
 
           <div class="rubric-criteria-list">
             <div class="rubric-criteria-box">
               <div class="criteria-header">
-                <span class="criteria-title">Communication &amp; Executive Presence</span>
+                <span class="criteria-title">Behavioural Skills</span>
                 <span class="criteria-marks">10 Points Max</span>
               </div>
               <p class="criteria-description">
-                Concise self-introduction, active listening, structured explanations without rambling, and professional composure.
+                Structured STAR storytelling, interpersonal maturity, accountability for mistakes, and teamwork mindset.
               </p>
             </div>
 
             <div class="rubric-criteria-box">
               <div class="criteria-header">
-                <span class="criteria-title">Behavioral, Culture &amp; Leadership</span>
+                <span class="criteria-title">HR Interview Performance</span>
                 <span class="criteria-marks">10 Points Max</span>
               </div>
               <p class="criteria-description">
-                Real project anecdotes using STAR framework, handling team disagreements, accountability for past mistakes, and growth mindset.
+                Executive presence, verbal articulation, active listening, composure under pressure, and vision alignment.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Grading Tiers Legend -->
+      <!-- Grading Tiers Legend (Grand Total 50 Marks) -->
       <div class="rubric-grade-scale-banner">
-        <h4 class="grade-scale-title">Cohort Benchmark Calibration</h4>
+        <h4 class="grade-scale-title">Cohort Benchmark Calibration (50 Marks Grand Total)</h4>
         <div class="grade-scale-badges">
           <div class="grade-tier-item tier-aplus">
-            <div class="tier-badge">Grade A+</div>
-            <div class="tier-range">&ge; 90% (27–30 pts)</div>
+            <div class="tier-badge">Outstanding</div>
+            <div class="tier-range">&ge; 85% (43–50 pts)</div>
             <div class="tier-desc">Placement Ready · Day-1 Productive</div>
           </div>
           <div class="grade-tier-item tier-a">
-            <div class="tier-badge">Grade A</div>
-            <div class="tier-range">80% – 89% (24–26 pts)</div>
-            <div class="tier-desc">Strong Candidate · Minor Polish</div>
+            <div class="tier-badge">Good</div>
+            <div class="tier-range">70% – 84% (35–42 pts)</div>
+            <div class="tier-desc">Strong Performer · Minor Polish</div>
           </div>
           <div class="grade-tier-item tier-b">
-            <div class="tier-badge">Grade B</div>
-            <div class="tier-range">70% – 79% (21–23 pts)</div>
-            <div class="tier-desc">Developing · Recommended Re-mock</div>
+            <div class="tier-badge">Average</div>
+            <div class="tier-range">55% – 69% (28–34 pts)</div>
+            <div class="tier-desc">Developing · Re-mock Recommended</div>
           </div>
           <div class="grade-tier-item tier-c">
-            <div class="tier-badge">Grade C / F</div>
-            <div class="tier-range">&lt; 70% (&le; 20 pts)</div>
-            <div class="tier-desc">Foundational Remedial Focus</div>
+            <div class="tier-badge">Needs Work / Poor</div>
+            <div class="tier-range">&lt; 55% (&le; 27 pts)</div>
+            <div class="tier-desc">Targeted Remedial Coaching</div>
           </div>
         </div>
       </div>
@@ -547,7 +550,7 @@
           <div class="feature-badge">Dual-Track System</div>
           <h3 class="feature-title">Technical &amp; HR Rubrics</h3>
           <p class="feature-desc">
-            Independent evaluation rubrics tailored specifically for Technical engineering (DSA, System Design, Code Quality) and HR competencies (Communication, Leadership, Cultural Fit).
+            Independent evaluation rubrics tailored specifically for Technical engineering (Resume Readiness, Project Defence, DSA — 30 marks) and HR competencies (Behavioural Skills, HR Interview Performance — 20 marks).
           </p>
         </div>
 
