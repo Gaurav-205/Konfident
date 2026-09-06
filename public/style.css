@@ -3300,14 +3300,68 @@ textarea.is-invalid {
   border-radius: var(--radius-pill);
 }
 
+/* Rubric Track Switcher Navigation */
+.console-track-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--surface-alt, #f6f5f2);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.track-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 8px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--slate);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.track-tab-btn:hover {
+  color: var(--cohere-black);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.track-tab-btn.active {
+  color: var(--cohere-black);
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.tab-indicator-icon {
+  color: #eab308;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tab-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 .console-participants {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 14px 18px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
   background: var(--surface-alt, #f6f5f2);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
@@ -3318,14 +3372,14 @@ textarea.is-invalid {
 }
 
 .avatar-circle {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   color: #ffffff;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
@@ -3343,7 +3397,7 @@ textarea.is-invalid {
 }
 
 .participant-role {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -3351,7 +3405,7 @@ textarea.is-invalid {
 }
 
 .participant-name {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--cohere-black);
 }
@@ -3381,25 +3435,85 @@ textarea.is-invalid {
   animation: pipelineFlow 1.2s linear infinite;
 }
 
-/* Rubric Progress Meters */
+/* Rubric Progress Meters & Dual Track Groups */
 .console-rubric-section {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.rubric-track-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px 12px;
+  background: rgba(246, 245, 242, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.rubric-track-group.is-hidden {
+  display: none !important;
+}
+
+.rubric-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
+  margin-bottom: 2px;
+}
+
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+}
+
+.dot-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-indicator.tech-dot,
+.tab-indicator-dot.tech-dot {
+  background: var(--action-blue, #1863dc);
+}
+.dot-indicator.hr-dot,
+.tab-indicator-dot.hr-dot {
+  background: #7c3aed;
+}
+
+.group-subtotal {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--slate);
+}
+.group-subtotal strong {
+  color: var(--cohere-black);
+  font-weight: 700;
 }
 
 .rubric-meter-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .meter-labels {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .meter-name {
@@ -3409,7 +3523,7 @@ textarea.is-invalid {
 
 .meter-score {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--slate);
 }
 .meter-score strong {
@@ -3418,7 +3532,7 @@ textarea.is-invalid {
 }
 
 .rubric-progress-track {
-  height: 8px;
+  height: 7px;
   background: var(--soft-stone, #eeece7);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -3432,7 +3546,10 @@ textarea.is-invalid {
   will-change: width;
 }
 .tech-fill {
-  background: linear-gradient(90deg, var(--action-blue), #4c6ee6);
+  background: linear-gradient(90deg, #1863dc, #4c6ee6);
+}
+.hr-fill {
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
 }
 
 /* Scorecard Console Footer */
@@ -3440,7 +3557,7 @@ textarea.is-invalid {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--card-border, #f2f2f2);
 }
 
@@ -3450,7 +3567,7 @@ textarea.is-invalid {
 }
 
 .total-caption {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -3459,7 +3576,7 @@ textarea.is-invalid {
 
 .total-value {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--cohere-black);
   line-height: 1.1;
@@ -3469,7 +3586,7 @@ textarea.is-invalid {
 }
 
 .total-denom {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -3479,22 +3596,154 @@ textarea.is-invalid {
   flex-direction: column;
   align-items: flex-end;
   background: var(--pale-green, #edfce9);
-  border: 1px solid rgba(0, 60, 51, 0.15);
-  padding: 6px 14px;
-  border-radius: 10px;
+  border: 1px solid rgba(0, 60, 51, 0.18);
+  padding: 5px 12px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+.console-grade-pill.g-a {
+  background: var(--pale-green, #edfce9);
+  border-color: rgba(0, 60, 51, 0.18);
+}
+.console-grade-pill.g-a .grade-label,
+.console-grade-pill.g-a .grade-status,
+.console-grade-pill.g-a .grade-badge-tag {
+  color: var(--deep-green, #003c33);
+}
+
+.console-grade-pill.g-b {
+  background: #eff6ff;
+  border-color: rgba(24, 99, 220, 0.2);
+}
+.console-grade-pill.g-b .grade-label,
+.console-grade-pill.g-b .grade-status,
+.console-grade-pill.g-b .grade-badge-tag {
+  color: #1e40af;
+}
+
+.console-grade-pill.g-c {
+  background: #fefce8;
+  border-color: rgba(202, 138, 4, 0.25);
+}
+.console-grade-pill.g-c .grade-label,
+.console-grade-pill.g-c .grade-status,
+.console-grade-pill.g-c .grade-badge-tag {
+  color: #854d0e;
+}
+
+.console-grade-pill.g-d {
+  background: #fff7ed;
+  border-color: rgba(234, 88, 12, 0.25);
+}
+.console-grade-pill.g-d .grade-label,
+.console-grade-pill.g-d .grade-status,
+.console-grade-pill.g-d .grade-badge-tag {
+  color: #9a3412;
+}
+
+.console-grade-pill.g-e {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.25);
+}
+.console-grade-pill.g-e .grade-label,
+.console-grade-pill.g-e .grade-status,
+.console-grade-pill.g-e .grade-badge-tag {
+  color: #991b1b;
+}
+
+.grade-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grade-badge-tag {
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
 }
 
 .grade-label {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
-  color: var(--deep-green, #003c33);
+  line-height: 1.1;
 }
 
 .grade-status {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--deep-green, #003c33);
+  opacity: 0.95;
+}
+
+/* 5-Tier Grade Scale Bar */
+.hero-grade-scale-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border, #f2f2f2);
+}
+
+.scale-tier {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 2px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted, #8b8b93);
+  background: transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.scale-tier .tier-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hairline, #d9d9dd);
+  transition: all 0.2s ease;
+}
+
+.scale-tier.active {
+  background: var(--surface-alt, #f6f5f2);
+  color: var(--cohere-black);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.scale-tier.active.tier-outstanding .tier-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+}
+
+.scale-tier.active.tier-good .tier-dot {
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.scale-tier.active.tier-average .tier-dot {
+  background: #ca8a04;
+  box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.25);
+}
+
+.scale-tier.active.tier-needswork .tier-dot {
+  background: #ea580c;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.25);
+}
+
+.scale-tier.active.tier-poor .tier-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
 }
 
 /* Bottom Analytics Badge */
@@ -3886,8 +4135,20 @@ textarea.is-invalid {
 
 .grade-scale-badges {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .grade-scale-badges {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .grade-scale-badges {
+    grid-template-columns: 1fr;
+  }
 }
 
 .grade-tier-item {
@@ -3895,7 +4156,7 @@ textarea.is-invalid {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 14px 12px;
+  padding: 14px 10px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
@@ -3925,10 +4186,18 @@ textarea.is-invalid {
 }
 
 .tier-c {
-  background: #fef2f2;
-  border-color: rgba(185, 28, 28, 0.15);
+  background: #fff7ed;
+  border-color: rgba(234, 88, 12, 0.18);
 }
 .tier-c .tier-badge {
+  color: #ea580c;
+}
+
+.tier-e {
+  background: #fef2f2;
+  border-color: rgba(185, 28, 28, 0.18);
+}
+.tier-e .tier-badge {
   color: #b91c1c;
 }
 

@@ -126,18 +126,31 @@
             <span class="pulse-dot"></span>
           </div>
 
-          <!-- Main Interactive Scorecard Console (Technical Simulation: 30 Marks Max) -->
+          <!-- Main Interactive Scorecard Console (Dual-Track Simulation: 30 Tech + 20 HR = 50 Marks) -->
           <div class="hero-card-float hero-card-primary">
             <!-- Card Header -->
             <div class="console-header">
               <div class="console-live-pill">
                 <span class="badge-dot-live"></span>
-                <span>Live Technical Simulation</span>
+                <span>Live Evaluation Console</span>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
-                <span class="console-duration-pill">20:00 Time Block</span>
-                <span class="pill p-technical" style="font-size:10px;font-weight:700">30 Marks</span>
+                <span class="console-duration-pill">Dual 20:00 Blocks</span>
+                <span class="pill p-technical" id="heroTrackBadge" style="font-size:10px;font-weight:700">50 Marks Grand Total</span>
               </div>
+            </div>
+
+            <!-- Rubric Track Switcher Navigation -->
+            <div class="console-track-nav" role="tablist" aria-label="Rubric Track Switcher">
+              <button type="button" class="track-tab-btn active" data-track="all" id="tabAll" role="tab" aria-selected="true">
+                <span class="tab-indicator-icon">★</span> Grand Total (50M)
+              </button>
+              <button type="button" class="track-tab-btn" data-track="tech" id="tabTech" role="tab" aria-selected="false">
+                <span class="tab-indicator-dot tech-dot"></span> Technical (30M)
+              </button>
+              <button type="button" class="track-tab-btn" data-track="hr" id="tabHr" role="tab" aria-selected="false">
+                <span class="tab-indicator-dot hr-dot"></span> HR Round (20M)
+              </button>
             </div>
 
             <!-- Participant Strip -->
@@ -161,57 +174,118 @@
               <div class="participant-box">
                 <div class="avatar-circle mentor-avatar">ME</div>
                 <div class="participant-meta">
-                  <span class="participant-role">Industry Evaluator</span>
-                  <strong class="participant-name">Senior SDE Lead</strong>
+                  <span class="participant-role">Evaluator Panel</span>
+                  <strong class="participant-name">Senior SDE &amp; HR</strong>
                 </div>
               </div>
             </div>
 
-            <!-- Official Technical Rubric Meters (Section 5 Requirement & src/rubric.js: Resume Readiness 10, Project Defence 10, DSA 10) -->
-            <div class="console-rubric-section">
-              <div class="rubric-meter-item">
-                <div class="meter-labels">
-                  <span class="meter-name">Resume Readiness</span>
-                  <span class="meter-score"><strong>10</strong> / 10</span>
+            <!-- Official Dual Rubric Meters (Technical 30M + HR 20M = 50M per README & src/rubric.js) -->
+            <div class="console-rubric-section" id="heroRubricContainer">
+              <!-- Technical Domain Group (30 Marks) -->
+              <div class="rubric-track-group" data-track-group="tech">
+                <div class="rubric-group-header">
+                  <span class="group-title"><span class="dot-indicator tech-dot"></span> Technical Domain (30M)</span>
+                  <span class="group-subtotal"><strong>28</strong> / 30</span>
                 </div>
-                <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="100%" style="width: 100%;"></div>
+                <div class="rubric-meter-item">
+                  <div class="meter-labels">
+                    <span class="meter-name">Resume Readiness</span>
+                    <span class="meter-score"><strong>10</strong> / 10</span>
+                  </div>
+                  <div class="rubric-progress-track">
+                    <div class="rubric-progress-fill tech-fill" data-width="100%" style="width: 100%;"></div>
+                  </div>
+                </div>
+
+                <div class="rubric-meter-item">
+                  <div class="meter-labels">
+                    <span class="meter-name">Project Defence</span>
+                    <span class="meter-score"><strong>9</strong> / 10</span>
+                  </div>
+                  <div class="rubric-progress-track">
+                    <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
+                  </div>
+                </div>
+
+                <div class="rubric-meter-item">
+                  <div class="meter-labels">
+                    <span class="meter-name">DSA</span>
+                    <span class="meter-score"><strong>9</strong> / 10</span>
+                  </div>
+                  <div class="rubric-progress-track">
+                    <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
+                  </div>
                 </div>
               </div>
 
-              <div class="rubric-meter-item">
-                <div class="meter-labels">
-                  <span class="meter-name">Project Defence</span>
-                  <span class="meter-score"><strong>9</strong> / 10</span>
+              <!-- HR Competency Domain Group (20 Marks) -->
+              <div class="rubric-track-group" data-track-group="hr">
+                <div class="rubric-group-header">
+                  <span class="group-title"><span class="dot-indicator hr-dot"></span> HR &amp; Behavioural Domain (20M)</span>
+                  <span class="group-subtotal"><strong>18</strong> / 20</span>
                 </div>
-                <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
+                <div class="rubric-meter-item">
+                  <div class="meter-labels">
+                    <span class="meter-name">Behavioural Skills</span>
+                    <span class="meter-score"><strong>9</strong> / 10</span>
+                  </div>
+                  <div class="rubric-progress-track">
+                    <div class="rubric-progress-fill hr-fill" data-width="90%" style="width: 90%;"></div>
+                  </div>
                 </div>
-              </div>
 
-              <div class="rubric-meter-item">
-                <div class="meter-labels">
-                  <span class="meter-name">DSA</span>
-                  <span class="meter-score"><strong>9</strong> / 10</span>
-                </div>
-                <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
+                <div class="rubric-meter-item">
+                  <div class="meter-labels">
+                    <span class="meter-name">HR Interview Performance</span>
+                    <span class="meter-score"><strong>9</strong> / 10</span>
+                  </div>
+                  <div class="rubric-progress-track">
+                    <div class="rubric-progress-fill hr-fill" data-width="90%" style="width: 90%;"></div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Scorecard Summary Footer (28 / 30 Marks = 93.3% -> Outstanding) -->
+            <!-- Scorecard Summary Footer (46 / 50 Marks = 92% -> Outstanding per src/rubric.js) -->
             <div class="console-footer">
               <div class="console-total-box">
-                <span class="total-caption">Technical Score (Track 1 of 2)</span>
+                <span class="total-caption" id="heroTotalCaption">Total Evaluated Score</span>
                 <div class="total-value">
-                  <span id="heroLiveScore">28</span>
-                  <span class="total-denom">/ 30</span>
+                  <span id="heroLiveScore">46</span>
+                  <span class="total-denom" id="heroLiveDenom">/ 50</span>
                 </div>
               </div>
-              <div class="console-grade-pill">
-                <span class="grade-label">Outstanding</span>
-                <span class="grade-status">93% · Placement Ready</span>
+              <div class="console-grade-pill" id="heroGradePill">
+                <div class="grade-title-row">
+                  <span class="grade-badge-tag">Official Grade</span>
+                  <span class="grade-label" id="heroGradeLabel">Outstanding</span>
+                </div>
+                <span class="grade-status" id="heroGradeStatus">92% · Placement Ready</span>
+              </div>
+            </div>
+
+            <!-- Official 5-Tier Grade Scale Bar per README & src/rubric.js -->
+            <div class="hero-grade-scale-bar" aria-label="Evaluation Grade Scale Matrix">
+              <div class="scale-tier tier-outstanding active" data-grade="Outstanding" title="≥ 85% — Outstanding">
+                <span class="tier-dot"></span>
+                <span class="tier-name">≥85% Outstanding</span>
+              </div>
+              <div class="scale-tier tier-good" data-grade="Good" title="≥ 70% — Good">
+                <span class="tier-dot"></span>
+                <span class="tier-name">≥70% Good</span>
+              </div>
+              <div class="scale-tier tier-average" data-grade="Average" title="≥ 55% — Average">
+                <span class="tier-dot"></span>
+                <span class="tier-name">≥55% Average</span>
+              </div>
+              <div class="scale-tier tier-needswork" data-grade="Needs Work" title="≥ 40% — Needs Work">
+                <span class="tier-dot"></span>
+                <span class="tier-name">≥40% Needs Work</span>
+              </div>
+              <div class="scale-tier tier-poor" data-grade="Poor" title="< 40% — Poor">
+                <span class="tier-dot"></span>
+                <span class="tier-name">&lt;40% Poor</span>
               </div>
             </div>
           </div>
@@ -498,9 +572,9 @@
         </div>
       </div>
 
-      <!-- Grading Tiers Legend (Grand Total 50 Marks) -->
+      <!-- Grading Tiers Legend (Grand Total 50 Marks per src/rubric.js) -->
       <div class="rubric-grade-scale-banner">
-        <h4 class="grade-scale-title">Cohort Benchmark Calibration (50 Marks Grand Total)</h4>
+        <h4 class="grade-scale-title">Cohort Benchmark Calibration (50 Marks Grand Total per Official Rubric)</h4>
         <div class="grade-scale-badges">
           <div class="grade-tier-item tier-aplus">
             <div class="tier-badge">Outstanding</div>
@@ -518,9 +592,14 @@
             <div class="tier-desc">Developing · Re-mock Recommended</div>
           </div>
           <div class="grade-tier-item tier-c">
-            <div class="tier-badge">Needs Work / Poor</div>
-            <div class="tier-range">&lt; 55% (&le; 27 pts)</div>
+            <div class="tier-badge">Needs Work</div>
+            <div class="tier-range">40% – 54% (20–27 pts)</div>
             <div class="tier-desc">Targeted Remedial Coaching</div>
+          </div>
+          <div class="grade-tier-item tier-e">
+            <div class="tier-badge">Poor</div>
+            <div class="tier-range">&lt; 40% (&lt; 20 pts)</div>
+            <div class="tier-desc">Foundational Skills Review</div>
           </div>
         </div>
       </div>
