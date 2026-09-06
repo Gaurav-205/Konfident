@@ -172,7 +172,7 @@
                   <span class="meter-score"><strong>10</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="100%"></div>
+                  <div class="rubric-progress-fill tech-fill" data-width="100%" style="width: 100%;"></div>
                 </div>
               </div>
 
@@ -182,7 +182,7 @@
                   <span class="meter-score"><strong>9</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="90%"></div>
+                  <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
                 </div>
               </div>
 
@@ -192,7 +192,7 @@
                   <span class="meter-score"><strong>9</strong> / 10</span>
                 </div>
                 <div class="rubric-progress-track">
-                  <div class="rubric-progress-fill tech-fill" data-width="90%"></div>
+                  <div class="rubric-progress-fill tech-fill" data-width="90%" style="width: 90%;"></div>
                 </div>
               </div>
             </div>
@@ -375,7 +375,7 @@
       </div>
 
       <!-- KPI Strip -->
-      <div class="landing-kpi-strip" id="rubric">
+      <div class="landing-kpi-strip">
         <div class="kpi-item">
           <span class="kpi-num">30</span>
           <span class="kpi-label">Point Rubric Scale</span>
@@ -395,6 +395,130 @@
           <span class="kpi-num">20</span>
           <span class="kpi-label">Minute Simulations</span>
           <span class="kpi-sub">Real hiring pacing</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rubric Scale Section -->
+  <section class="landing-section landing-rubric-section" id="rubric">
+    <div class="landing-container">
+      <div class="section-header-center">
+        <span class="section-badge">Calibrated Evaluation Framework</span>
+        <h2 class="section-title">Transparent 30-Point &amp; 20-Point Scoring Matrices</h2>
+        <p class="section-subtitle">
+          Eliminate evaluator subjectivity. Every interview is calibrated across standardized criteria with instant rubrics and actionable post-interview diagnostics.
+        </p>
+      </div>
+
+      <div class="rubric-matrix-grid">
+        <!-- Technical Matrix Card -->
+        <div class="rubric-track-card technical-track-card">
+          <div class="track-card-header">
+            <div class="track-pill technical-pill">
+              <span class="pill-dot tech-dot"></span>
+              Technical Interview Round
+            </div>
+            <span class="track-total-badge">Max 30 Marks</span>
+          </div>
+          <p class="track-card-intro">
+            A rigorous 20-minute live session focusing on algorithm design, code efficiency, and architecture fundamentals.
+          </p>
+
+          <div class="rubric-criteria-list">
+            <div class="rubric-criteria-box">
+              <div class="criteria-header">
+                <span class="criteria-title">Data Structures &amp; Algorithms</span>
+                <span class="criteria-marks">10 Points Max</span>
+              </div>
+              <p class="criteria-description">
+                Problem comprehension, edge-case identification, optimal time and space complexity choices, and clean logical flow.
+              </p>
+            </div>
+
+            <div class="rubric-criteria-box">
+              <div class="criteria-header">
+                <span class="criteria-title">System Architecture &amp; CS Core</span>
+                <span class="criteria-marks">10 Points Max</span>
+              </div>
+              <p class="criteria-description">
+                Database indexing, REST/gRPC API structures, concurrency control, system modularity, and memory safety fundamentals.
+              </p>
+            </div>
+
+            <div class="rubric-criteria-box">
+              <div class="criteria-header">
+                <span class="criteria-title">Problem Solving &amp; Code Quality</span>
+                <span class="criteria-marks">10 Points Max</span>
+              </div>
+              <p class="criteria-description">
+                Variable semantics, modular function design, debugging agility under hiring pressure, and verbal explanation of trade-offs.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- HR & Behavioral Matrix Card -->
+        <div class="rubric-track-card hr-track-card">
+          <div class="track-card-header">
+            <div class="track-pill hr-pill">
+              <span class="pill-dot hr-dot"></span>
+              HR Competency Round
+            </div>
+            <span class="track-total-badge">Max 20 Marks</span>
+          </div>
+          <p class="track-card-intro">
+            Evaluates professional readiness, structured STAR communication, conflict ownership, and culture fit.
+          </p>
+
+          <div class="rubric-criteria-list">
+            <div class="rubric-criteria-box">
+              <div class="criteria-header">
+                <span class="criteria-title">Communication &amp; Executive Presence</span>
+                <span class="criteria-marks">10 Points Max</span>
+              </div>
+              <p class="criteria-description">
+                Concise self-introduction, active listening, structured explanations without rambling, and professional composure.
+              </p>
+            </div>
+
+            <div class="rubric-criteria-box">
+              <div class="criteria-header">
+                <span class="criteria-title">Behavioral, Culture &amp; Leadership</span>
+                <span class="criteria-marks">10 Points Max</span>
+              </div>
+              <p class="criteria-description">
+                Real project anecdotes using STAR framework, handling team disagreements, accountability for past mistakes, and growth mindset.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grading Tiers Legend -->
+      <div class="rubric-grade-scale-banner">
+        <h4 class="grade-scale-title">Cohort Benchmark Calibration</h4>
+        <div class="grade-scale-badges">
+          <div class="grade-tier-item tier-aplus">
+            <div class="tier-badge">Grade A+</div>
+            <div class="tier-range">&ge; 90% (27–30 pts)</div>
+            <div class="tier-desc">Placement Ready · Day-1 Productive</div>
+          </div>
+          <div class="grade-tier-item tier-a">
+            <div class="tier-badge">Grade A</div>
+            <div class="tier-range">80% – 89% (24–26 pts)</div>
+            <div class="tier-desc">Strong Candidate · Minor Polish</div>
+          </div>
+          <div class="grade-tier-item tier-b">
+            <div class="tier-badge">Grade B</div>
+            <div class="tier-range">70% – 79% (21–23 pts)</div>
+            <div class="tier-desc">Developing · Recommended Re-mock</div>
+          </div>
+          <div class="grade-tier-item tier-c">
+            <div class="tier-badge">Grade C / F</div>
+            <div class="tier-range">&lt; 70% (&le; 20 pts)</div>
+            <div class="tier-desc">Foundational Remedial Focus</div>
+          </div>
         </div>
       </div>
     </div>
@@ -594,6 +718,6 @@
 
 <!-- Anime.js Core Library & Landing Animation Script -->
 <script src="/js/anime.min.js"></script>
-<script src="/js/landing.js"></script>
+<script src="/js/landing.js?v=20260906-ui-ux-fix"></script>
 
 <%- include('partials/foot-plain') %>
