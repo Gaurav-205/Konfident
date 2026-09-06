@@ -86,6 +86,8 @@ function setAuthSession(req, res, user) {
 function clearAuthSession(req, res, callback) {
   const isSecure = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
   res.appendHeader('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax${isSecure ? '; Secure' : ''}`);
+  res.appendHeader('Set-Cookie', `konfident_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax${isSecure ? '; Secure' : ''}`);
+  res.appendHeader('Set-Cookie', `connect.sid=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax${isSecure ? '; Secure' : ''}`);
   if (req.session) {
     delete req.session.user;
     req.session.destroy(() => {

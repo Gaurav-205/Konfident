@@ -21,8 +21,13 @@
     <h1 style="font-size:24px"><%= title %></h1>
     <p class="muted" style="font-size:14px;line-height:1.6"><%= message %></p>
     <div class="btn-row" style="margin-top:22px">
-      <a class="btn primary" href="<%= typeof backHref !== 'undefined' && backHref ? backHref : '/' %>"><%= typeof backLabel !== 'undefined' && backLabel ? backLabel : '← Back to dashboard' %></a>
-      <% if (!currentUser) { %><a class="btn" href="/login">Sign in →</a><% } %>
+      <% if (currentUser) { %>
+        <a class="btn primary" href="/dashboard">← Go to Dashboard</a>
+        <a class="btn" href="/">Return to Home</a>
+      <% } else { %>
+        <a class="btn primary" href="/">← Return to Home</a>
+        <a class="btn" href="/login">Sign in →</a>
+      <% } %>
     </div>
   </div>
 </div>

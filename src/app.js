@@ -96,6 +96,7 @@ try {
 }
 
 app.use(session({
+  name: 'konfident_session',
   store: sessionStore,
   secret: sessionSecret || 'konfident-interview-2025-dev-secret',
   resave: false,
@@ -106,6 +107,7 @@ app.use(session({
     httpOnly: true,
     sameSite: 'lax',
     secure: 'auto',
+    path: '/',
   },
 }));
 
