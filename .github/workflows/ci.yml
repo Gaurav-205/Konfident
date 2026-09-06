@@ -1,0 +1,56 @@
+name: Konfident CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Build & Verify Suite
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Unit, View & Edge-Case Tests
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://127.0.0.1:27017/konfident-test
+          SESSION_SECRET: test-github-actions-ci-secret-32-chars-long
+        run: |
+          npm run test:helpers
+          npm run test:views
+          npm run test:models
+          npm run test:queries
+          npm run test:validation
+
+      - name: Run E2E Integration & Auth Suites
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://127.0.0.1:27017/konfident-test
+          SESSION_SECRET: test-github-actions-ci-secret-32-chars-long
+        run: |
+          npm run test:auth
+          npm run test:e2e
