@@ -167,7 +167,7 @@
             if (node.tagName === 'FORM') attachButtonLoading(node);
             else if (node.tagName === 'DIALOG') attachModalHandlers(node);
             else if (node.classList && node.classList.contains('flash')) initFlashAlerts();
-            else if (node.querySelectorAll) {
+            else if (node.querySelector && node.querySelector('form, dialog, .flash')) {
               node.querySelectorAll('form').forEach(attachButtonLoading);
               node.querySelectorAll('dialog').forEach(attachModalHandlers);
               node.querySelectorAll('.flash').forEach(initFlashAlerts);

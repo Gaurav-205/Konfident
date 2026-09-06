@@ -112,9 +112,12 @@ async function sessionRehydrateMiddleware(req, res, next) {
   const payload = verifyToken(token);
   if (!payload || !payload.id) return next();
 
+  const mongoose = require('mongoose');
+  if (!mongoose.Types.ObjectId.isValid(payload.id)) return next();
+
   try {
     const { User } = require('../models');
-    const row = await User.findById(payload.id).lean();
+    const row = await User.findById(payload.id).select('_id active sessions_invalid_before name email role').lean();
     const tokenTs = Number(payload.ts) || 0;
     const staleAfterPwChange = row && row.sessions_invalid_before && tokenTs < Number(row.sessions_invalid_before);
     if (row && row.active && !staleAfterPwChange) {

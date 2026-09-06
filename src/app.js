@@ -48,9 +48,16 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
   },
 }));
 
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  // The fallback below is committed to source. Running production on it makes
+  // every `konfident_auth` cookie and CSRF token forgeable — a full auth
+  // bypass — so fail fast instead, exactly as the README promises.
+  console.error('[security] SESSION_SECRET is required in production. Refusing to start. Generate one with: openssl rand -base64 48');
+  process.exit(1);
+}
 const sessionSecret = process.env.SESSION_SECRET || 'konfident-interview-2025-prod-fallback-secret-key-3b98f';
 if (!process.env.SESSION_SECRET) {
-  console.warn('[security] SESSION_SECRET is not set in environment — using robust fallback secret key.');
+  console.warn('[security] SESSION_SECRET is not set — using an insecure development fallback. Do not use this in production.');
 }
 
 const db = require('./db');

@@ -1,4 +1,5 @@
 'use strict';
+const mongoose = require('mongoose');
 const { User } = require('./models');
 const { clearAuthSession } = require('./middleware/sessionAuth');
 
@@ -30,13 +31,18 @@ function isDualRoleUser(user) {
  */
 async function resolveCurrentUser(req, res) {
   if (!req.session || !req.session.user) {
-    if (req.method === 'GET') req.session.redirectTo = req.originalUrl;
+    if (req.method === 'GET' && req.session) req.session.redirectTo = req.originalUrl;
     respondUnauthenticated(req, res);
     return null;
   }
 
   let user = null;
   const userId = req.session.user.id || req.session.user._id;
+
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    clearAuthSession(req, res, () => respondUnauthenticated(req, res));
+    return null;
+  }
 
   if (req._resolvedUser && String(req._resolvedUser._id || req._resolvedUser.id) === String(userId)) {
     user = req._resolvedUser;
@@ -45,7 +51,9 @@ async function resolveCurrentUser(req, res) {
     req._resolvedUser = user;
   } else {
     try {
-      user = await User.findById(userId).lean();
+      user = await User.findById(userId)
+        .select('-password_hash -google_access_token -google_refresh_token')
+        .lean();
       if (user) {
         user.id = user._id;
         req._resolvedUser = user;

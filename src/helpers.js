@@ -136,7 +136,11 @@ function generateMeetingLink(type = 'interview') {
 function linkify(str) {
   if (!str) return '';
   const safe = escapeHtml(str);
-  const urlRegex = /(https?:\/\/[^\s<&"']+)/g;
+  // Run against the already-escaped text, so a real "&" now reads as "&amp;".
+  // Excluding "&" here would cut every URL at its first query separator
+  // (e.g. calendar links) and leak "amp;..." as trailing text; "<", '"' and
+  // "'" stay excluded so the match can never break out of the href attribute.
+  const urlRegex = /(https?:\/\/[^\s<"']+)/g;
   return safe.replace(urlRegex, (url) => {
     let label = `${url} ↗`;
     if (url.includes('calendar.google.com') || url.includes('appointments/schedules')) {
@@ -283,15 +287,27 @@ function isValidTime(timeStr) {
 async function checkWeeklyInterviewLimit(dbOrModels, studentId, type, slotDate) {
   const week = getWeekRange(slotDate || today());
   const maxAllowed = type === 'technical' ? 3 : 1;
-  const { Interview } = require('./models');
+  const { Interview, Slot } = require('./models');
 
-  const ivs = await Interview.find({
+  const weekSlotIds = await Slot.distinct('_id', {
+    slot_date: { $gte: week.start, $lte: week.end },
+  });
+
+  if (!weekSlotIds || !weekSlotIds.length) {
+    return {
+      reached: false,
+      count: 0,
+      maxAllowed,
+      week,
+    };
+  }
+
+  const count = await Interview.countDocuments({
     student_id: studentId,
     type,
     status: { $ne: 'cancelled' },
-  }).populate('slot_id').lean();
-
-  const count = ivs.filter(iv => iv.slot_id && iv.slot_id.slot_date >= week.start && iv.slot_id.slot_date <= week.end).length;
+    slot_id: { $in: weekSlotIds },
+  });
 
   return {
     reached: count >= maxAllowed,

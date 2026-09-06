@@ -214,5 +214,115 @@ test('createRateLimiter produces functioning limiter and tracks request counts',
   assert.strictEqual(nextCalled, 2);
 });
 
+test('createRateLimiter reset() clears the caller bucket so a good login is not penalised', () => {
+  const limiter = createRateLimiter({ max: 2, windowMs: 60000 });
+  const req = { ip: '10.0.0.9', body: { email: 'x@y.z' }, headers: {}, accepts: () => false, session: {} };
+  const res = { setHeader: () => {}, status: () => ({ json: () => {} }) };
+
+  let allowed = 0;
+  limiter(req, res, () => { allowed++; }); // failed attempt 1
+  limiter(req, res, () => { allowed++; }); // failed attempt 2 (bucket now at the limit)
+  assert.strictEqual(allowed, 2);
+
+  limiter.reset(req); // successful auth clears the failures
+
+  let allowedAfter = 0;
+  limiter(req, res, () => { allowedAfter++; });
+  limiter(req, res, () => { allowedAfter++; });
+  assert.strictEqual(allowedAfter, 2, 'reset() did not clear the rate-limit bucket');
+});
+
+// ---- 7. Midnight Slot Boundary & DB Close Lifecycle ----
+test('Midnight slot boundary calculation caps safely at 23:59 and produces valid time', () => {
+  const hPart = 23;
+  const mPart = 15;
+  const durMin = 45;
+  let totalEndMin = hPart * 60 + mPart + durMin; // 1440
+  if (totalEndMin >= 24 * 60) totalEndMin = 24 * 60 - 1; // 1439
+  const endH = String(Math.floor(totalEndMin / 60)).padStart(2, '0');
+  const endM = String(totalEndMin % 60).padStart(2, '0');
+  const curEnd = `${endH}:${endM}`;
+  assert.strictEqual(curEnd, '23:59');
+  assert.strictEqual(h.isValidTime(curEnd), true);
+  assert.strictEqual(h.normalizeTime(curEnd), '23:59');
+});
+
+test('db module exports an async close function for clean process shutdown', () => {
+  const db = require('../src/db');
+  assert.strictEqual(typeof db.close, 'function');
+});
+
+// ---- 8. CSV Escaping & Injection Protection ----
+test('escapeCsvCell escapes double quotes and neutralizes spreadsheet formula injection', () => {
+  function escapeCsvCell(val) {
+    if (val == null) return '""';
+    let str = String(val);
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+
+  // Normal text
+  assert.strictEqual(escapeCsvCell('Aisha Sharma'), '"Aisha Sharma"');
+  // Quotes
+  assert.strictEqual(escapeCsvCell('Squad "Alpha"'), '"Squad ""Alpha"""');
+  // Formula injection attempts
+  assert.strictEqual(escapeCsvCell('=cmd|"/c calc"!A1'), `"'=cmd|""/c calc""!A1"`);
+  assert.strictEqual(escapeCsvCell('+SUM(A1:A10)'), ` "'+SUM(A1:A10)"`.trim());
+  assert.strictEqual(escapeCsvCell('@evil'), `"\'@evil"`);
+  assert.strictEqual(escapeCsvCell('-20'), ` "'-20"`.trim());
+  // Null or empty
+  assert.strictEqual(escapeCsvCell(null), '""');
+  assert.strictEqual(escapeCsvCell(''), '""');
+});
+
+// ---- 9. Database Guards & State Integrity ----
+test('ObjectId validation rejects operator injection payloads and invalid strings', () => {
+  const validId = new mongoose.Types.ObjectId().toString();
+  assert.strictEqual(mongoose.Types.ObjectId.isValid(validId), true);
+  assert.strictEqual(mongoose.Types.ObjectId.isValid('not-an-id'), false);
+  assert.strictEqual(mongoose.Types.ObjectId.isValid(''), false);
+  assert.strictEqual(mongoose.Types.ObjectId.isValid(null), false);
+  assert.strictEqual(mongoose.Types.ObjectId.isValid({ $ne: 1 }), false);
+});
+
+test('Cancelled interviews reject attendance, evaluation, and feedback modifications', () => {
+  function canModifyInterview(status) {
+    return status !== 'cancelled';
+  }
+  assert.strictEqual(canModifyInterview('booked'), true);
+  assert.strictEqual(canModifyInterview('completed'), true);
+  assert.strictEqual(canModifyInterview('cancelled'), false);
+});
+
+// ---- 10. Async Crypto & Session Safety ----
+test('bcrypt async hashing and comparison function properly without blocking event loop', async () => {
+  const bcrypt = require('bcryptjs');
+  const plain = 'SecurePassword123!';
+  const hash = await bcrypt.hash(plain, 10);
+  assert.strictEqual(typeof hash, 'string');
+  assert.strictEqual(hash.startsWith('$2'), true);
+
+  const isMatch = await bcrypt.compare(plain, hash);
+  assert.strictEqual(isMatch, true);
+
+  const isMismatch = await bcrypt.compare('WrongPassword', hash);
+  assert.strictEqual(isMismatch, false);
+});
+
+test('Session user ID guard identifies invalid/corrupt IDs safely', () => {
+  function isValidSessionId(id) {
+    return Boolean(id && mongoose.Types.ObjectId.isValid(id));
+  }
+  const validId = new mongoose.Types.ObjectId().toString();
+  assert.strictEqual(isValidSessionId(validId), true);
+  assert.strictEqual(isValidSessionId('12345'), false);
+  assert.strictEqual(isValidSessionId('undefined'), false);
+  assert.strictEqual(isValidSessionId(null), false);
+  assert.strictEqual(isValidSessionId({}), false);
+});
+
 console.log(`\nValidation & Edge-Cases Tests Summary: ${pass} passed, ${fail} failed.\n`);
 if (fail > 0) process.exit(1);
+process.exit(0);

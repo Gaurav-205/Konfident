@@ -102,7 +102,7 @@ async function sendBookingConfirmation({ student, mentor, slot, meetingLink }) {
     } else {
       console.log(`[emailService] Dispatched notification to ${r.to}: "${r.subject}" | Link: ${link}`);
     }
-    logEmailAudit(r.to, r.subject, { slot_id: slot.id, type: slot.type, link });
+    logEmailAudit(r.to, r.subject, { slot_id: slot.id || slot._id, type: slot.type, link });
   }
 
   return { ok: true };
@@ -132,7 +132,8 @@ async function sendCancellationNotice({ student, mentor, slot, cancelledBy }) {
   const transporter = getTransporter();
   const fromAddress = process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@konfident.kalvium.community';
 
-  for (const person of [student, mentor]) {
+  for (const person of [student, mentor].filter(Boolean)) {
+    if (!person.email) continue;
     if (transporter) {
       try {
         await transporter.sendMail({ from: fromAddress, to: person.email, subject, text: body });
@@ -142,7 +143,7 @@ async function sendCancellationNotice({ student, mentor, slot, cancelledBy }) {
     } else {
       console.log(`[emailService] Dispatched cancellation email to ${person.email}: "${subject}"`);
     }
-    logEmailAudit(person.email, subject, { slot_id: slot.id });
+    logEmailAudit(person.email, subject, { slot_id: slot.id || slot._id });
   }
 
   return { ok: true };

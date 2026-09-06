@@ -238,7 +238,7 @@ const isDev = Boolean(typeof isDeveloper !== 'undefined' && isDeveloper);
           <td><span class="pill p-<%= s.type %>"><%= h.titleCase(s.type) %></span></td>
           <td class="faint"><%= s.mode %></td>
           <td class="num">
-            <button type="button" class="btn sm" onclick='openMentorSlotManageModal(<%- JSON.stringify({ id: s.id, slot_date: s.slot_date, start_time: s.start_time, end_time: s.end_time, mode: s.mode, type: s.type }).replace(/'/g, "&#39;").replace(/</g, "\\u003c") %>)'>Manage</button>
+            <button type="button" class="btn sm" data-slot="<%- h.escapeHtml(JSON.stringify({ id: s.id, slot_date: s.slot_date, start_time: s.start_time, end_time: s.end_time, mode: s.mode, type: s.type })) %>" onclick="openMentorSlotManageModal(this)">Manage</button>
           </td>
         </tr>
       <% }); %></tbody>
@@ -330,9 +330,13 @@ if (typeof window.initMultiDatePicker === 'function' && document.getElementById(
   });
 }
 
-window.openMentorSlotManageModal = function (slot) {
+window.openMentorSlotManageModal = function (slotOrBtn) {
   var modal = document.getElementById('mentorManageSlotModal');
-  if (!modal || !slot) return;
+  if (!modal || !slotOrBtn) return;
+  var slot = slotOrBtn;
+  if (slotOrBtn instanceof HTMLElement || (slotOrBtn.dataset && slotOrBtn.dataset.slot)) {
+    try { slot = JSON.parse(slotOrBtn.dataset.slot); } catch (e) { console.error('Error parsing slot data:', e); return; }
+  }
 
   var titleEl = document.getElementById('mng_slot_title');
   if (titleEl) {

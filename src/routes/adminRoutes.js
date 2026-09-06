@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { Slot, Interview, User, Evaluation, StudentFeedback, AuditLog } = require('../models');
 const q = require('../queries');
@@ -27,11 +28,13 @@ router.get(['/', '/dashboard'], async (req, res) => {
   const [stats, bookedIvs, completedIvs, studentSummaries] = await Promise.all([
     q.adminStats(),
     Interview.find({ status: 'booked' })
+      .select('type status slot_id student_id mentor_id')
       .populate('slot_id')
       .populate('student_id', 'name email')
       .populate('mentor_id', 'name email')
       .lean(),
     Interview.find({ status: 'completed' })
+      .select('type status slot_id student_id mentor_id')
       .populate('slot_id')
       .populate('student_id', 'name email')
       .populate('mentor_id', 'name email')
@@ -112,10 +115,11 @@ router.post('/students', actionLimiter, async (req, res) => {
     const existing = await User.findOne({ email: cleanEmail });
     if (existing) throw new Error('That email is already registered.');
 
+    const pwHash = await bcrypt.hash(cleanPw, 10);
     await User.create({
       name: cleanName,
       email: cleanEmail,
-      password_hash: bcrypt.hashSync(cleanPw, 10),
+      password_hash: pwHash,
       role: 'student',
       roll_no: roll_no ? String(roll_no).trim() : null,
       branch: branch ? String(branch).trim() : null,
@@ -153,9 +157,11 @@ router.post('/students/:id/update', validateId('id'), async (req, res) => {
   }
 
   const isActive = active ? 1 : 0;
+  const updateFields = { name: cleanName, roll_no, branch, squad, phone: cleanPhone, resume_url: cleanResume, active: isActive };
+  if (!isActive) updateFields.sessions_invalid_before = Date.now();
   await User.findOneAndUpdate(
     { _id: req.params.id, role: 'student' },
-    { $set: { name: cleanName, roll_no, branch, squad, phone: cleanPhone, resume_url: cleanResume, active: isActive } }
+    { $set: updateFields }
   );
 
   logAudit(req, 'ADMIN_UPDATE_STUDENT', { student_id: req.params.id });
@@ -231,10 +237,11 @@ router.post('/mentors', actionLimiter, async (req, res) => {
     const existing = await User.findOne({ email: cleanEmail });
     if (existing) throw new Error('That email is already registered.');
 
+    const pwHash = await bcrypt.hash(cleanPw, 10);
     await User.create({
       name: cleanName,
       email: cleanEmail,
-      password_hash: bcrypt.hashSync(cleanPw, 10),
+      password_hash: pwHash,
       role: 'mentor',
       phone: cleanPhone,
       can_technical: techFlag,
@@ -266,9 +273,11 @@ router.post('/mentors/:id/update', validateId('id'), async (req, res) => {
   const techFlag = can_technical ? 1 : 0;
   const hrFlag = can_hr ? 1 : 0;
   const isActive = active ? 1 : 0;
+  const updateFields = { name: cleanName, phone: cleanPhone, can_technical: techFlag, can_hr: hrFlag, active: isActive };
+  if (!isActive) updateFields.sessions_invalid_before = Date.now();
 
   await User.findByIdAndUpdate(req.params.id, {
-    $set: { name: cleanName, phone: cleanPhone, can_technical: techFlag, can_hr: hrFlag, active: isActive },
+    $set: updateFields,
   });
 
   logAudit(req, 'ADMIN_UPDATE_MENTOR', { mentor_id: req.params.id });
@@ -288,7 +297,8 @@ async function adminResetUserPassword(req, res, role, redirectTo) {
   const fail = (msg) => { flash(req, 'err', msg); res.redirect(redirectTo(targetId)); };
 
   const admin = await User.findById(req.session.user.id).lean();
-  if (!admin || !bcrypt.compareSync(adminPassword, admin.password_hash || '')) {
+  const isAdminPwValid = admin && (await bcrypt.compare(adminPassword, admin.password_hash || ''));
+  if (!isAdminPwValid) {
     logAudit(req, 'ADMIN_PASSWORD_RESET_DENIED', { target_id: targetId, role });
     return fail('Your admin password is incorrect. Password was not reset.');
   }
@@ -296,10 +306,13 @@ async function adminResetUserPassword(req, res, role, redirectTo) {
   const pwError = h.validatePassword(newPassword);
   if (pwError) return fail(pwError);
 
-  const target = await User.findOne({ _id: targetId, role });
+  const targetQuery = role === 'mentor'
+    ? { _id: targetId, $or: [{ role: 'mentor' }, { can_technical: 1 }, { can_hr: 1 }] }
+    : { _id: targetId, role: 'student' };
+  const target = await User.findOne(targetQuery);
   if (!target) return fail(`${role === 'student' ? 'Candidate' : 'Evaluator'} account not found.`);
 
-  target.password_hash = bcrypt.hashSync(newPassword, 10);
+  target.password_hash = await bcrypt.hash(newPassword, 10);
   target.sessions_invalid_before = Date.now();
   await target.save();
 
@@ -351,7 +364,7 @@ router.get('/slots', async (req, res) => {
       .limit(limit)
       .lean(),
     q.mentorsList(),
-    User.find({ role: 'student', active: 1 }).sort({ name: 1 }).lean(),
+    User.find({ role: 'student', active: 1 }).select('name email roll_no').sort({ name: 1 }).lean(),
   ]);
 
   const bookedSlotIds = rawSlots.filter(s => s.status === 'booked').map(s => s._id);
@@ -420,6 +433,9 @@ router.get('/slots', async (req, res) => {
 router.post('/slots', actionLimiter, async (req, res) => {
   try {
     const { mentor_id, type, slot_date, end_date, repeat_days, exclude_weekends, start_time, duration, count, mode, location } = req.body;
+    if (!mentor_id || !mongoose.Types.ObjectId.isValid(mentor_id)) {
+      throw new Error('Valid mentor selection is required.');
+    }
     const mentor = await User.findById(mentor_id).lean();
     if (!mentor) throw new Error('Selected mentor account not found.');
     mentor.id = mentor._id;
@@ -493,7 +509,7 @@ router.post('/slots', actionLimiter, async (req, res) => {
         const curStart = `${startH}:${startM}`;
         
         let totalEndMin = hPart * 60 + mPart + durMin;
-        if (totalEndMin > 24 * 60) totalEndMin = 24 * 60 - 1;
+        if (totalEndMin >= 24 * 60) totalEndMin = 24 * 60 - 1;
         const endH = String(Math.floor(totalEndMin / 60)).padStart(2, '0');
         const endM = String(totalEndMin % 60).padStart(2, '0');
         const curEnd = `${endH}:${endM}`;
@@ -554,23 +570,35 @@ router.post('/slots/:id/allot', validateId('id'), async (req, res) => {
   const slotId = req.params.id;
   const studentId = req.body.student_id;
   try {
-    const slot = await Slot.findById(slotId);
-    if (!slot || slot.status !== 'open') throw new Error('Slot is not available for allotment.');
+    if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+      throw new Error('Valid student selection is required.');
+    }
 
     const student = await User.findById(studentId);
     if (!student || student.role !== 'student') throw new Error('Student account not found.');
 
-    slot.status = 'booked';
-    await slot.save();
+    // Atomic claim: prevent concurrent allotments or races with student booking
+    const slot = await Slot.findOneAndUpdate(
+      { _id: slotId, status: 'open' },
+      { $set: { status: 'booked' } },
+      { returnDocument: 'after' }
+    );
+    if (!slot) throw new Error('Slot is not available for allotment.');
 
-    const iv = await Interview.create({
-      slot_id: slot._id,
-      student_id: student._id,
-      mentor_id: slot.mentor_id,
-      type: slot.type,
-      status: 'booked',
-      attendance: 'pending',
-    });
+    let iv;
+    try {
+      iv = await Interview.create({
+        slot_id: slot._id,
+        student_id: student._id,
+        mentor_id: slot.mentor_id,
+        type: slot.type,
+        status: 'booked',
+        attendance: 'pending',
+      });
+    } catch (createErr) {
+      await Slot.findByIdAndUpdate(slot._id, { $set: { status: 'open' } });
+      throw createErr;
+    }
 
     const mentor = await User.findById(slot.mentor_id).lean();
 
@@ -603,15 +631,53 @@ router.post('/slots/:id/reschedule', validateId('id'), async (req, res) => {
     if (!slot) throw new Error('Slot not found.');
 
     const { slot_date, start_time, end_time, mentor_id, mode } = req.body;
-    if (slot_date) slot.slot_date = String(slot_date).trim();
-    if (start_time) slot.start_time = h.normalizeTime(start_time) || slot.start_time;
-    if (end_time) slot.end_time = h.normalizeTime(end_time) || slot.end_time;
-    if (mentor_id && require('mongoose').Types.ObjectId.isValid(mentor_id)) {
-      slot.mentor_id = mentor_id;
-    }
-    if (mode) slot.mode = mode;
+    const targetDate = slot_date ? String(slot_date).trim() : slot.slot_date;
+    const targetStart = start_time ? (h.normalizeTime(start_time) || slot.start_time) : slot.start_time;
+    const targetEnd = end_time ? (h.normalizeTime(end_time) || slot.end_time) : slot.end_time;
+    const targetMentorId = (mentor_id && mongoose.Types.ObjectId.isValid(mentor_id)) ? mentor_id : slot.mentor_id;
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) throw new Error('Invalid date.');
+    if (!targetStart || !targetEnd) throw new Error('Invalid start or end time.');
+    if (targetEnd <= targetStart) throw new Error('End time must be after start time.');
+
+    const overlap = await Slot.findOne({
+      _id: { $ne: slot._id },
+      mentor_id: targetMentorId,
+      slot_date: targetDate,
+      status: { $ne: 'cancelled' },
+      start_time: { $lt: targetEnd },
+      end_time: { $gt: targetStart },
+    }).lean();
+
+    if (overlap) throw new Error(`Overlaps with an existing slot (${overlap.start_time} - ${overlap.end_time}).`);
+
+    slot.slot_date = targetDate;
+    slot.start_time = targetStart;
+    slot.end_time = targetEnd;
+    slot.mentor_id = targetMentorId;
+    if (mode) slot.mode = mode === 'Offline' ? 'Offline' : 'Online';
 
     await slot.save();
+
+    // Sync associated booked interview and Google Calendar event if present
+    const iv = await Interview.findOne({ slot_id: slot._id, status: 'booked' })
+      .populate('student_id')
+      .populate('mentor_id');
+    if (iv) {
+      if (mentor_id && String(iv.mentor_id ? (iv.mentor_id._id || iv.mentor_id) : '') !== String(mentor_id)) {
+        iv.mentor_id = mentor_id;
+        await iv.save();
+      }
+      if (iv.google_event_id) {
+        google.updateCalendarEvent({
+          eventId: iv.google_event_id,
+          student: iv.student_id,
+          mentor: iv.mentor_id,
+          slot,
+        }).catch(() => {});
+      }
+    }
+
     logAudit(req, 'ADMIN_RESCHEDULE_SLOT', { slot_id: slot._id });
     flash(req, 'ok', 'Slot rescheduled successfully.');
   } catch (e) {
@@ -623,8 +689,31 @@ router.post('/slots/:id/reschedule', validateId('id'), async (req, res) => {
 router.post('/slots/:id/release', validateId('id'), async (req, res) => {
   const slotId = req.params.id;
   try {
+    const slot = await Slot.findById(slotId).lean();
+    const bookedIv = await Interview.findOne({ slot_id: slotId, status: 'booked' })
+      .populate('student_id')
+      .populate('mentor_id');
+
     await Slot.findByIdAndUpdate(slotId, { $set: { status: 'open' } });
     await Interview.updateMany({ slot_id: slotId, status: 'booked' }, { $set: { status: 'cancelled' } });
+
+    if (bookedIv) {
+      if (bookedIv.google_event_id) {
+        google.removeCalendarEvent({
+          eventId: bookedIv.google_event_id,
+          student: bookedIv.student_id,
+          mentor: bookedIv.mentor_id,
+        }).catch(() => {});
+      }
+      emailService.sendCancellationNotice({
+        student: bookedIv.student_id,
+        mentor: bookedIv.mentor_id,
+        slot,
+        interview: bookedIv,
+        cancelledBy: 'administrator',
+      }).catch(() => {});
+    }
+
     logAudit(req, 'ADMIN_RELEASE_SLOT', { slot_id: slotId });
     flash(req, 'ok', 'Booking released. Slot is now open.');
   } catch (e) {
@@ -636,8 +725,31 @@ router.post('/slots/:id/release', validateId('id'), async (req, res) => {
 router.post('/slots/:id/cancel', validateId('id'), async (req, res) => {
   const slotId = req.params.id;
   try {
+    const slot = await Slot.findById(slotId).lean();
+    const bookedIv = await Interview.findOne({ slot_id: slotId, status: 'booked' })
+      .populate('student_id')
+      .populate('mentor_id');
+
     await Slot.findByIdAndUpdate(slotId, { $set: { status: 'cancelled' } });
     await Interview.updateMany({ slot_id: slotId, status: 'booked' }, { $set: { status: 'cancelled' } });
+
+    if (bookedIv) {
+      if (bookedIv.google_event_id) {
+        google.removeCalendarEvent({
+          eventId: bookedIv.google_event_id,
+          student: bookedIv.student_id,
+          mentor: bookedIv.mentor_id,
+        }).catch(() => {});
+      }
+      emailService.sendCancellationNotice({
+        student: bookedIv.student_id,
+        mentor: bookedIv.mentor_id,
+        slot,
+        interview: bookedIv,
+        cancelledBy: 'administrator',
+      }).catch(() => {});
+    }
+
     logAudit(req, 'ADMIN_CANCEL_SLOT', { slot_id: slotId });
     flash(req, 'ok', 'Slot cancelled.');
   } catch (e) {
@@ -678,6 +790,8 @@ router.post('/slots/delete-all', async (req, res) => {
   try {
     await Slot.deleteMany({});
     await Interview.deleteMany({});
+    await Evaluation.deleteMany({});
+    await StudentFeedback.deleteMany({});
     logAudit(req, 'ADMIN_DELETE_ALL_SLOTS');
     flash(req, 'ok', 'All slots have been deleted.');
   } catch (e) {
@@ -827,6 +941,15 @@ router.get('/reports.csv', async (req, res) => {
   ];
   rows.push(headers.join(','));
 
+  function escapeCsvCell(val) {
+    if (val == null) return '""';
+    let str = String(val);
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+
   for (const s of summaries) {
     const st = s.student;
     const tech = s.technical || {};
@@ -836,11 +959,11 @@ router.get('/reports.csv', async (req, res) => {
     const hrMarks = RUBRIC.hr.criteria.map(c => hr[c.key] != null ? hr[c.key] : '');
 
     const row = [
-      `"${st.roll_no || ''}"`,
-      `"${st.name}"`,
-      `"${st.email}"`,
-      `"${st.branch || ''}"`,
-      `"${st.squad || ''}"`,
+      escapeCsvCell(st.roll_no || ''),
+      escapeCsvCell(st.name),
+      escapeCsvCell(st.email),
+      escapeCsvCell(st.branch || ''),
+      escapeCsvCell(st.squad || ''),
       ...techMarks,
       s.techScore != null ? s.techScore : '',
       ...hrMarks,
