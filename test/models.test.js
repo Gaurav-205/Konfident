@@ -2,7 +2,7 @@
 require('dotenv').config();
 process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/konfident';
 const assert = require('assert');
-const { connectDb, mongoose, User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, PasswordReset, Setting } = require('../src/db');
+const { connectDb, mongoose, User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, Setting } = require('../src/db');
 
 console.log('=== Running MongoDB Models Unit Tests ===');
 

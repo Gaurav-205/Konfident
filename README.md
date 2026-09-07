@@ -71,7 +71,6 @@ a production database.**
 | `SESSION_SECRET` | **Required in production** — the process exits without it. Generate with `openssl rand -base64 48`. |
 | `MONGODB_URI` | MongoDB connection string for both app data and sessions. Defaults to `mongodb://127.0.0.1:27017/konfident`. Use the `mongodb+srv://…` string for Atlas. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | Root administrator created by `npm run init` / `npm run seed`. |
-| `RESET_LINK_VISIBLE` | `true`/`false`. Controls whether password-reset links are shown in the browser (see below). |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Enable Google sign-in and Calendar sync. Leave blank to disable the integration cleanly. |
 | `GOOGLE_REDIRECT_URI` | Optional. When unset the callback URL is derived from the request, which is what you want behind Vercel or a custom domain. |
 
@@ -81,18 +80,11 @@ Never commit `.env` — it is git-ignored.
 
 ### 4. Password Recovery
 
-`/forgot-password` issues a single-use reset link that expires after one hour
-and invalidates every other outstanding link for that account.
-
-**There is no mail provider wired into this project.** The link is therefore:
-
-- always written to the server log (`[password-reset] link for <email>: <url>`), and
-- additionally shown in the browser when `NODE_ENV` is not `production`, so the
-  placement cell can pass it to the candidate directly.
-
-Set `RESET_LINK_VISIBLE=false` to force log-only behaviour, or replace the
-`console.log` in `src/routes/authRoutes.js` with a real mail call. Administrators
-can also reset any password directly from `/admin/students/:id` and `/admin/mentors`.
+There is **no self-service password reset**. A locked-out user contacts an
+administrator, who sets a new password directly from `/admin/students/:id` or
+`/admin/mentors` (the admin confirms with their own password; the target's other
+sessions are dropped). Signed-in users change their own password at
+**My profile → Change password**.
 
 ---
 
@@ -150,7 +142,7 @@ browser would — cookies, form posts, redirects — then asserts against the
 database. It covers helper units, every page render, the Mongoose models and
 aggregation queries, security headers and CSRF, all three role guards, booking
 concurrency, the evaluation rubric, and the full auth lifecycle (password login,
-admin/self password reset, forgot/reset-password, logout guards).
+admin and self-service password change, logout guards).
 
 ```text
 helpers  11 · views 19 · models 5 · queries 4 · e2e 35 · auth 33  —  107 assertions, 0 failed

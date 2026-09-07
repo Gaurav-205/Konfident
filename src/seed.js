@@ -26,7 +26,7 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const h = require('./helpers');
 const {
-  User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, PasswordReset, Setting,
+  User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, Setting,
 } = require('./models');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/konfident';
@@ -112,7 +112,6 @@ async function clearManagedCollections() {
     Evaluation.deleteMany({}),
     StudentFeedback.deleteMany({}),
     AuditLog.deleteMany({}),
-    PasswordReset.deleteMany({}),
     Setting.deleteMany({}),
   ]);
 }

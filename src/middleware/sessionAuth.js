@@ -138,34 +138,12 @@ async function sessionRehydrateMiddleware(req, res, next) {
   next();
 }
 
-/**
- * Drops a user's persisted sessions so a password change or a deactivation
- * takes effect on devices that are already signed in.
- *
- * Only meaningful with the SQLite session store: serverless deployments use an
- * in-memory store per Lambda, where there is nothing shared to delete. The
- * signed `konfident_auth` cookie is the backstop there — it is re-validated
- * against the users table on every request.
- *
- * @param {number} userId          - whose sessions to drop.
- * @param {string|null} keepSessionId - session id to preserve (the caller's own).
- */
-function invalidateUserSessions(userId, keepSessionId = null) {
-  setTimeout(async () => {
-    try {
-      const { User } = require('../models');
-      if (User && userId) {
-        await User.findByIdAndUpdate(userId, { $set: { sessions_invalid_before: Date.now() } });
-      }
-    } catch (err) {
-      console.error('Failed to invalidate sessions for user', userId, err.message);
-    }
-  }, 50);
-}
+// Session invalidation on password change / deactivation is done inline by the
+// routes that trigger it: they set `sessions_invalid_before` on the user, which
+// resolveCurrentUser() re-checks against the session's `iat` on every request.
 
 module.exports = {
   COOKIE_NAME,
-  invalidateUserSessions,
   signToken,
   verifyToken,
   setAuthSession,

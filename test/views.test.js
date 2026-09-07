@@ -41,8 +41,6 @@ const templatesToTest = [
   { file: 'student/results.ejs', data: { s: { student: { name: 'Test Student', roll_no: '101', branch: 'CSE' }, technical: null, hr: null, history: [], allEvaluated: false, currentWeek: { label: 'This Week' } } } },
   { file: 'landing.ejs', data: {} },
   { file: 'login.ejs', data: { error: null, email: '', googleConfigured: true } },
-  { file: 'forgot-password.ejs', data: { sent: false, error: null, email: '', resetUrl: null } },
-  { file: 'reset-password.ejs', data: { token: 'abc', error: null, email: 's@test.com' } },
   { file: 'profile.ejs', data: { me: { id: '1', name: 'Test User', email: 'test@test.com', role: 'admin' }, error: null, ok: null, googleConfigured: true } },
   { file: 'error.ejs', data: { message: 'Something' } },
 ];

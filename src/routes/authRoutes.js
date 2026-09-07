@@ -2,7 +2,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { User, PasswordReset } = require('../models');
+const { User } = require('../models');
 const h = require('../helpers');
 const { requireLogin, homeFor, isUserDeveloper, isDualRoleUser, determineRoleForEmail } = require('../auth');
 const google = require('../services/googleService');
@@ -12,7 +12,6 @@ const { logAudit } = require('../middleware/auditLog');
 
 const router = express.Router();
 const authLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 15, message: 'Too many login attempts. Please try again in 15 minutes.' });
-const forgotLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many password reset requests. Please try again in 15 minutes.' });
 
 const DUMMY_HASH = bcrypt.hashSync('timing-defence-dummy-secret', 10);
 
@@ -204,20 +203,19 @@ router.get(['/auth/google/callback', '/api/auth/callback/google'], async (req, r
       });
     }
 
-    const targetRole = determineRoleForEmail(email);
+    // Link Google to the existing account WITHOUT touching its role. The role an
+    // admin or the seed assigned is authoritative; re-deriving it from the email
+    // on every login silently reverted admin changes and let any unlisted
+    // kalvium.com address escalate itself to mentor. Role is only ever set at
+    // account creation (below). The akshata.sanap admin pin stays explicit.
     const updateFields = {
       google_id: profile.id,
       google_access_token: tokens.access_token,
       google_token_expiry: tokenExpiry,
     };
-    if (email === 'akshata.sanap@kalvium.com') {
+    if (email === 'akshata.sanap@kalvium.com' && (user.role !== 'admin' || !user.can_hr)) {
       updateFields.role = 'admin';
       updateFields.can_hr = 1;
-    } else if (user.role !== targetRole) {
-      updateFields.role = targetRole;
-      if (targetRole === 'mentor' && !user.can_technical && !user.can_hr) {
-        updateFields.can_technical = 1;
-      }
     }
     if (tokens.refresh_token) {
       updateFields.google_refresh_token = tokens.refresh_token;
@@ -283,139 +281,12 @@ router.get(['/auth/google/callback', '/api/auth/callback/google'], async (req, r
   });
 });
 
-/* ------------------------------ Password Recovery ----------------------------- */
-router.get('/forgot-password', (req, res) => {
-  res.render('forgot-password', {
-    title: 'Reset password',
-    sent: false,
-    error: null,
-    email: '',
-    resetUrl: null,
-  });
-});
-
-router.post('/forgot-password', forgotLimiter, async (req, res) => {
-  const email = String(req.body.email || '').trim().toLowerCase();
-  if (!email || !h.isValidEmail(email)) {
-    return res.status(400).render('forgot-password', {
-      title: 'Reset password',
-      sent: false,
-      error: 'Please enter a valid email address.',
-      email: req.body.email || '',
-      resetUrl: null,
-    });
-  }
-
-  // Never reveal whether an account exists. The reset link is only surfaced in
-  // the browser outside production (there is no mail provider wired up); in
-  // production it is written to the server log only.
-  let resetUrl = null;
-  const user = await User.findOne({ email }).lean();
-  if (user && user.active) {
-    const rawToken = crypto.randomBytes(32).toString('base64url');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    await PasswordReset.updateMany({ user_id: user._id, used_at: null }, { $set: { used_at: new Date() } });
-    await PasswordReset.create({
-      user_id: user._id,
-      token_hash: tokenHash,
-      expires_at: expiresAt,
-    });
-
-    const resetLink = `${req.protocol}://${req.get('host')}/reset-password/${rawToken}`;
-    console.log(`[password-reset] link for ${email}: ${resetLink}`);
-    logAudit(req, 'AUTH_PASSWORD_RESET_REQUESTED', { email }, user._id);
-
-    const visible = process.env.RESET_LINK_VISIBLE
-      ? process.env.RESET_LINK_VISIBLE !== 'false'
-      : process.env.NODE_ENV !== 'production';
-    if (visible) resetUrl = resetLink;
-  }
-
-  res.render('forgot-password', {
-    title: 'Reset password',
-    sent: true,
-    error: null,
-    email,
-    resetUrl,
-  });
-});
-
-router.get('/reset-password/:token', async (req, res) => {
-  const rawToken = String(req.params.token || '');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-  const record = await PasswordReset.findOne({
-    token_hash: tokenHash,
-    used_at: null,
-    expires_at: { $gt: new Date() },
-  }).lean();
-
-  if (!record) {
-    return res.status(400).render('error', {
-      title: 'Invalid reset link',
-      message: 'This password reset link is invalid or has expired.',
-      backHref: '/forgot-password',
-      backLabel: 'Request a new link',
-    });
-  }
-
-  const target = await User.findById(record.user_id).lean();
-  res.render('reset-password', {
-    title: 'Choose a new password',
-    token: rawToken,
-    error: null,
-    email: target ? target.email : '',
-  });
-});
-
-router.post('/reset-password/:token', authLimiter, async (req, res) => {
-  const rawToken = String(req.params.token || '');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-  // The template posts `next1`/`next2`; accept `password`/`confirm` too.
-  const password = String(req.body.next1 || req.body.password || '');
-  const confirm = String(req.body.next2 || req.body.confirm || '');
-
-  const record = await PasswordReset.findOne({
-    token_hash: tokenHash,
-    used_at: null,
-    expires_at: { $gt: new Date() },
-  }).lean();
-
-  if (!record) {
-    return res.status(400).render('error', {
-      title: 'Invalid reset link',
-      message: 'This password reset link is invalid or has expired.',
-      backHref: '/forgot-password',
-      backLabel: 'Request a new link',
-    });
-  }
-
-  const target = await User.findById(record.user_id).lean();
-  const rerender = (error) => res.status(400).render('reset-password', {
-    title: 'Choose a new password',
-    token: rawToken,
-    error,
-    email: target ? target.email : '',
-  });
-
-  const pwError = h.validatePassword(password);
-  if (pwError) return rerender(pwError);
-  if (password !== confirm) return rerender('Passwords do not match.');
-
-  const pwHash = await bcrypt.hash(password, 10);
-  const nowMs = Date.now();
-
-  await User.findByIdAndUpdate(record.user_id, {
-    $set: { password_hash: pwHash, sessions_invalid_before: nowMs },
-  });
-  await PasswordReset.findByIdAndUpdate(record._id, { $set: { used_at: new Date() } });
-
-  logAudit(req, 'AUTH_PASSWORD_RESET_COMPLETED', {}, record.user_id);
-  req.session.flash = { type: 'ok', msg: 'Your password has been reset. Please sign in with your new password.' };
-  res.redirect('/login');
-});
+/*
+ * Self-service password recovery has been removed. Users who are locked out
+ * must ask an administrator to set a new password from /admin/students/:id or
+ * /admin/mentors — see adminResetUserPassword() in adminRoutes.js. Signed-in
+ * users change their own password at /profile/password.
+ */
 
 /* ------------------------------ Profile & Role Switch ----------------------------- */
 router.get('/profile', requireLogin, async (req, res) => {

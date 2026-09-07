@@ -1,6 +1,6 @@
 'use strict';
 require('dotenv').config();
-const { connectDb, mongoose, User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, PasswordReset } = require('../src/db');
+const { connectDb, mongoose, User, Slot, Interview, Evaluation, StudentFeedback, AuditLog } = require('../src/db');
 
 async function resetDb() {
   console.log('=== Resetting MongoDB (Clearing Operational Records) ===');
@@ -13,7 +13,6 @@ async function resetDb() {
     Evaluation.deleteMany({}),
     StudentFeedback.deleteMany({}),
     AuditLog.deleteMany({}),
-    PasswordReset.deleteMany({}),
   ]);
 
   const userCount = await User.countDocuments();

@@ -8,6 +8,11 @@ npm-debug.log*
 .neon
 scratch/
 
+# Local AI/agent tooling — not part of the project
+.agents/
+.claude/
+skills-lock.json
+
 # Manual-test / debugging artifacts — never commit these (they have leaked
 # session cookies and CSRF tokens in the past).
 cookies.txt

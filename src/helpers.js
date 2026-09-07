@@ -225,7 +225,7 @@ function isStudentProfileComplete(user) {
 
 // Single source of truth for the password floor (was duplicated across 6 call
 // sites with three different messages). Raising this is a one-line change here —
-// note it also requires updating the fixtures in test/e2e.js and the
+// note it also requires updating the fixtures in test/fixtures.js and the
 // `minlength` attributes in the password form templates.
 const MIN_PASSWORD_LENGTH = 6;
 

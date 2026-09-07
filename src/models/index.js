@@ -5,7 +5,6 @@ const Interview = require('./Interview');
 const Evaluation = require('./Evaluation');
 const StudentFeedback = require('./StudentFeedback');
 const AuditLog = require('./AuditLog');
-const PasswordReset = require('./PasswordReset');
 const Setting = require('./Setting');
 
 module.exports = {
@@ -15,6 +14,5 @@ module.exports = {
   Evaluation,
   StudentFeedback,
   AuditLog,
-  PasswordReset,
   Setting,
 };

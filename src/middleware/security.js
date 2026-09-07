@@ -50,7 +50,15 @@ function createRateLimiter(options = {}) {
   }
 
   const middleware = function rateLimitMiddleware(req, res, next) {
-    if (hits.size > 10000) hits.clear();
+    // Under memory pressure, drop only expired buckets first — a blunt clear()
+    // let anyone reset every victim's counter by flooding the map with junk keys.
+    if (hits.size > 10000) {
+      const cutoff = Date.now() - windowMs;
+      for (const [k, rec] of hits) {
+        if (rec.resetTime < cutoff) hits.delete(k);
+      }
+      if (hits.size > 20000) hits.clear();
+    }
     const key = rlKey(req);
     const now = Date.now();
     let record = hits.get(key);

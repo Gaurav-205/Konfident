@@ -389,7 +389,7 @@ router.post('/interview/:id/evaluate', validateId('id'), async (req, res) => {
       resume_marks: iv.type === 'technical' ? Number(req.body.resume_marks ?? req.body.resume ?? 0) : 0,
       project_marks: iv.type === 'technical' ? Number(req.body.project_marks ?? req.body.project ?? 0) : 0,
       dsa_marks: iv.type === 'technical' ? Number(req.body.dsa_marks ?? req.body.dsa ?? 0) : 0,
-      behaviour_marks: Number(req.body.behaviour_marks ?? req.body.behaviour ?? 0),
+      behaviour_marks: iv.type === 'hr' ? Number(req.body.behaviour_marks ?? req.body.behaviour ?? 0) : 0,
       hr_perf_marks: iv.type === 'hr' ? Number(req.body.hr_perf_marks ?? req.body.hr_perf ?? 0) : 0,
       total,
       feedback,

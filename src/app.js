@@ -19,7 +19,14 @@ const { requestConcurrencyMiddleware, getWorkerDiagnostics } = require('./middle
 const app = express();
 
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+// Trust X-Forwarded-* only behind a real proxy. On a directly-exposed process it
+// lets any client spoof req.ip and rotate past the IP-keyed auth rate limiter
+// (unlimited login attempts). Prod/Vercel still trust one hop;
+// set TRUST_PROXY explicitly ('true', 'false', or a hop count) to override.
+app.set('trust proxy',
+  process.env.TRUST_PROXY
+    ? (process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY === 'false' ? false : process.env.TRUST_PROXY)
+    : (process.env.NODE_ENV === 'production' || !!process.env.VERCEL ? 1 : false));
 app.use(requestConcurrencyMiddleware);
 app.use(securityHeaders);
 
@@ -149,13 +156,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy' });
 });
 
-// Cluster and load balancer diagnostics
+// Cluster liveness probe. Detailed worker diagnostics (PID, memory, request
+// counts) are admin-only — see /health/details — to avoid leaking process
+// internals to unauthenticated callers.
 app.get('/health/cluster', (req, res) => {
-  const isCluster = require('cluster').isWorker;
   res.json({
     status: 'healthy',
-    mode: isCluster ? 'cluster_worker' : 'single_instance',
-    diagnostics: getWorkerDiagnostics(),
+    mode: require('cluster').isWorker ? 'cluster_worker' : 'single_instance',
   });
 });
 
@@ -170,6 +177,7 @@ app.get('/health/details', requireRole('admin'), (req, res) => {
     timestamp: new Date().toISOString(),
     node: process.version,
     memory: process.memoryUsage(),
+    worker: getWorkerDiagnostics(),
   });
 });
 

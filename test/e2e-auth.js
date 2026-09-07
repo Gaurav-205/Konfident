@@ -96,17 +96,10 @@ async function login(who, email, password = 'pass123') {
   ok((await get('student', '/student')).status === 200, 'session preserved after own password change');
   await post('student', '/profile/password', { current_password: 'brandnew1', new_password: 'pass123', confirm_password: 'pass123' });
 
-  section('5. Forgot / reset password lifecycle');
-  const fp = await post('anon', '/forgot-password', { email: student.email });
-  ok(fp.status === 200 && fp.body.includes('/reset-password/'), 'forgot-password surfaces a reset link in test mode');
-  const token = (fp.body.match(/\/reset-password\/([A-Za-z0-9_-]+)/) || [])[1];
-  ok(!!token, 'reset token extracted');
-  ok((await get('anon', '/reset-password/' + token)).status === 200, 'reset-password page renders');
-  ok((await post('anon', '/reset-password/' + token, { next1: 'abc', next2: 'abc' })).status === 400, 'too-short password rejected');
-  ok((await post('anon', '/reset-password/' + token, { next1: 'newpw12345', next2: 'different' })).status === 400, 'mismatched passwords rejected');
-  ok((await post('anon', '/reset-password/' + token, { next1: 'newpw12345', next2: 'newpw12345' })).loc === '/login', 'valid reset -> /login');
-  ok((await login('r', student.email, 'newpw12345')).loc === '/student', 'login works with the reset password');
-  ok((await get('anon', '/reset-password/' + token)).status === 400, 'used reset token cannot be replayed');
+  section('5. Admin-initiated password reset (self-service recovery removed)');
+  ok((await get('anon', '/forgot-password')).status === 404, '/forgot-password no longer exists');
+  ok((await post('admin', '/admin/students/' + student._id + '/reset-password', { admin_password: 'pass123', password: 'newpw12345' })).status === 302, 'admin resets student password -> 302');
+  ok((await login('r', student.email, 'newpw12345')).loc === '/student', 'login works with the admin-set password');
   await post('admin', '/admin/students/' + student._id + '/reset-password', { admin_password: 'pass123', password: 'pass123' });
 
   section('6. Logout clears access');
