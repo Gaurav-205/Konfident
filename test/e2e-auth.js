@@ -3,9 +3,7 @@ require('dotenv').config();
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/konfident';
 
-const mongoose = require('mongoose');
-const app = require('../src/app');
-const { User, Slot, Interview } = require('../src/models');
+const { connectDb, mongoose, User, Slot, Interview } = require('../src/db');
 const { generateCsrfToken } = require('../src/middleware/security');
 const h = require('../src/helpers');
 const { ensureFixtures } = require('./fixtures');
@@ -47,8 +45,10 @@ async function login(who, email, password = 'pass123') {
   return r;
 }
 
+const app = require('../src/app');
+
 (async () => {
-  await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+  await connectDb();
   const fx = await ensureFixtures();
   const server = app.listen(0);
   await new Promise((r) => server.once('listening', r));

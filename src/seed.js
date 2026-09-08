@@ -6,30 +6,19 @@
  *     -> Pristine database: only the root administrator account. Zero mock data.
  *
  *   node src/seed.js --dev     (npm run seed)
- *     -> Kalvium demo cohort: staff admins, mentors, 40 candidates and a full
- *        week of open interview slots. Every account password is `pass123`.
+ *     -> Clean fresh start: Root admin, staff admins, mentors, 40 candidates.
+ *        All existing slots, interviews, evaluations, feedbacks cleared.
+ *        Zero pre-existing slots. Every account password is `pass123`.
  *
  *   node src/seed.js --empty
  *     -> Removes every document from every collection (including the admin).
- *
- *   node src/seed.js --test    (used by `npm test`)
- *     -> Same as --dev but guaranteed deterministic and silent-ish, so the
- *        integration suite always has an admin, a mentor and a student to log in.
- *
- * The seeder is destructive: it clears the collections it manages before
- * re-seeding. It refuses to run against a database that is not obviously local
- * unless SEED_ALLOW_REMOTE=1 is set.
  */
 require('dotenv').config();
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
-const h = require('./helpers');
 const {
-  User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, Setting,
-} = require('./models');
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/konfident';
+  connectDb, mongoose, User, Slot, Interview, Evaluation, StudentFeedback, AuditLog, Setting,
+} = require('./db');
 
 const argv = process.argv.slice(2);
 let mode = 'dev';
@@ -38,7 +27,7 @@ else if (argv.includes('--clean') || process.env.SEED_MODE === 'clean') mode = '
 else if (argv.includes('--test') || process.env.SEED_MODE === 'test') mode = 'test';
 else if (argv.includes('--dev') || process.env.SEED_MODE === 'dev') mode = 'dev';
 
-const adminEmail = (process.env.ADMIN_EMAIL || 'admin@konfident.edu').toLowerCase().trim();
+const adminEmail = (process.env.ADMIN_EMAIL || 'admin@yourinstitution.edu').toLowerCase().trim();
 const adminName = process.env.ADMIN_NAME || 'Head Administrator';
 let adminPassword = process.env.ADMIN_PASSWORD;
 let generatedAdminPw = false;
@@ -49,60 +38,70 @@ if (mode === 'dev' || mode === 'test') {
   generatedAdminPw = true;
 }
 
-function isLocalUri(uri) {
-  return /(?:@|\/\/)(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?(?:\/|$)/i.test(uri) ||
-    /mongodb:\/\/(?:localhost|127\.0\.0\.1)/i.test(uri);
-}
-
 const kalviumAdmins = [
-  { name: 'Utkarsha Kasar', email: 'utkarsha.kasar@kalvium.com' },
-  { name: 'Prachi Sharma', email: 'prachi.sharma@kalvium.com' },
-  { name: 'Ashish Suresh', email: 'ashish.suresh@kalvium.com' },
-  { name: 'Akshata Sanap', email: 'akshata.sanap@kalvium.com', can_hr: 1 },
+  { name: 'Utkarsha Kasar', email: 'utkarsha.kasar@kalvium.com', can_technical: 1, can_hr: 1 },
+  { name: 'Prachi Sharma', email: 'prachi.sharma@kalvium.com', can_technical: 0, can_hr: 0 },
+  { name: 'Ashish Suresh', email: 'ashish.suresh@kalvium.com', can_technical: 0, can_hr: 0 },
+  { name: 'Akshata Sanap', email: 'akshata.sanap@kalvium.com', can_technical: 0, can_hr: 1 },
 ];
 
 const kalviumMentors = [
-  { name: 'Manav Verma', email: 'manav.verma@kalvium.com', can_technical: 1 },
-  { name: 'Muskan Srivastava', email: 'muskan.srivastava@kalvium.com', can_hr: 1 },
-  { name: 'Ritu Soni', email: 'ritu.soni@kalvium.com', can_technical: 1 },
-  { name: 'Shikhar Agarwal', email: 'shikhar.agarwal@kalvium.com', can_technical: 1 },
-  { name: 'Aditya Kulshreshtha', email: 'aditya.kulshreshtha@kalvium.com', can_technical: 1 },
-  { name: 'Sneha Kulkarni', email: 'sneha.kulkarni@kalvium.com', can_hr: 1 },
-  { name: 'Arjun Mehta', email: 'arjun.mehta@kalvium.com', can_technical: 1, can_hr: 1 },
+  { name: 'Manav Verma', email: 'manav.verma@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Muskan Srivastava', email: 'muskan.srivastava@kalvium.com', can_technical: 0, can_hr: 1 },
+  { name: 'Ritu Soni', email: 'ritu.soni@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Shikhar Agarwal', email: 'shikhar.agarwal@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Shivam Shrivastava', email: 'shivam.shrivastava@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Aditya Kulshreshtha', email: 'aditya.kulshreshtha@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Hrituparno C', email: 'hrituparno.c@kalvium.com', can_technical: 1, can_hr: 0 },
+  { name: 'Navaneeth V', email: 'navaneeth.v@kalvium.com', can_technical: 0, can_hr: 1 },
+  { name: 'Kanishka Ragavi', email: 'kanishka.ragavi@kalvium.com', can_technical: 0, can_hr: 1 },
 ];
 
-function makeStudents() {
-  const out = [];
-  const squads = [['116', 18], ['115', 22]];
-  const firsts = ['Isha', 'Aditya', 'Digvijay', 'Anisha', 'Areesh', 'Kanishka', 'Shubham', 'Yashraj',
-    'Aryan', 'Om', 'Gauri', 'Avadhut', 'Riddhima', 'Hardik', 'Tejas', 'Khushal', 'Aayushman', 'Prithvi',
-    'Palakshi', 'Ruhaa', 'Pratite', 'Shriram', 'Varad', 'Raina', 'Shaurya', 'Aadi', 'Parnil', 'Atharv',
-    'Sasmit', 'Rakshaad', 'Sohini', 'Rishikesh', 'Vinayak', 'Gitesh', 'Devansh', 'Aamir', 'Shruti',
-    'Manas', 'Kavya', 'Nikhil'];
-  const lasts = ['Agrawal', 'Talikoti', 'Patil', 'Ahmed', 'Girnar', 'Reddy', 'Jagtap', 'Lonkar', 'Mhetre',
-    'Pawar', 'Sinhal', 'Kaurani', 'Pujari', 'Rajput', 'Shukla', 'Rajvanshi', 'Verma', 'Bhalerao',
-    'Acharya', 'Awchar', 'Shahane', 'George', 'Undre', 'Jain', 'Vyawhare', 'Hargude', 'Narnaware',
-    'Kolhe', 'Tandon', 'Bagal', 'Kulkarni', 'Chaudhari', 'Itkalkar'];
-  let n = 0;
-  for (const [squad, count] of squads) {
-    for (let i = 1; i <= count; i++) {
-      const first = firsts[n % firsts.length];
-      const last = lasts[n % lasts.length];
-      const roll = `KAL${squad}${String(i).padStart(3, '0')}`;
-      out.push({
-        name: `${first} ${last}`,
-        email: `${first}.${last}.s.${squad}@kalvium.community`.toLowerCase(),
-        roll_no: roll,
-        squad,
-        branch: 'CSE',
-        phone: '+91 98765 43210',
-        resume_url: `https://drive.google.com/file/d/${roll}/view`,
-      });
-      n++;
-    }
-  }
-  return out;
-}
+const kalviumStudents = [
+  // Squad 116 (18 candidates)
+  { name: 'Isha Agrawal', email: 'isha.agrawal.s.116@kalvium.community', squad: '116', roll_no: 'KAL116001' },
+  { name: 'Aditya Talikoti', email: 'aditya.talikoti.s.116@kalvium.community', squad: '116', roll_no: 'KAL116002' },
+  { name: 'Digvijay Patil', email: 'digvijay.patil.s.116@kalvium.community', squad: '116', roll_no: 'KAL116003' },
+  { name: 'Anisha Santosh Agrawal', email: 'anisha.agrawal.s.116@kalvium.community', squad: '116', roll_no: 'KAL116004' },
+  { name: 'Areesh Ahmed', email: 'areesh.ahmed.s.116@kalvium.community', squad: '116', roll_no: 'KAL116005' },
+  { name: 'Kanishka Nishchal Girnar', email: 'kanishka.girnar.s.116@kalvium.community', squad: '116', roll_no: 'KAL116006' },
+  { name: 'Aditya Sudhir Nagane', email: 'aditya.nagane.s.116@kalvium.community', squad: '116', roll_no: 'KAL116007' },
+  { name: 'Shubham Uddhav Reddy', email: 'shubham.reddy.s.116@kalvium.community', squad: '116', roll_no: 'KAL116008' },
+  { name: 'Yashwardhan Santosh Chaudhari', email: 'yashwardhan.chaudhari.s.116@kalvium.community', squad: '116', roll_no: 'KAL116009' },
+  { name: 'Yashraj Jagtap', email: 'yashraj.jagtap.s.116@kalvium.community', squad: '116', roll_no: 'KAL116010' },
+  { name: 'Aryan Patil', email: 'aryan.patil.s.116@kalvium.community', squad: '116', roll_no: 'KAL116011' },
+  { name: 'Om Lonkar', email: 'om.lonkar.s.116@kalvium.community', squad: '116', roll_no: 'KAL116012' },
+  { name: 'Gauri Mhetre', email: 'gauri.mhetre.s.116@kalvium.community', squad: '116', roll_no: 'KAL116013' },
+  { name: 'Avadhut Murlidhar Pawar', email: 'avadhut.pawar.s.116@kalvium.community', squad: '116', roll_no: 'KAL116014' },
+  { name: 'Riddhima Sinhal', email: 'riddhima.sinhal.s.116@kalvium.community', squad: '116', roll_no: 'KAL116015' },
+  { name: 'Hardik Kaurani', email: 'hardik.kaurani.s.116@kalvium.community', squad: '116', roll_no: 'KAL116016' },
+  { name: 'Tejas Vijaykumar Pujari', email: 'tejas.pujari.s.116@kalvium.com', squad: '116', roll_no: 'KAL116017' },
+  { name: 'Khushal Rajput', email: 'khushal.rajput.s.116@kalvium.community', squad: '116', roll_no: 'KAL116018' },
+
+  // Squad 115 (22 candidates)
+  { name: 'Aayushman Shukla', email: 'aayushman.shukla.s.115@kalvium.community', squad: '115', roll_no: 'KAL115001' },
+  { name: 'Prithvi Rajvanshi', email: 'prithvi.rajvanshi.s.115@kalvium.community', squad: '115', roll_no: 'KAL115002' },
+  { name: 'Palakshi Verma', email: 'palakshi.verma.s.115@kalvium.community', squad: '115', roll_no: 'KAL115003' },
+  { name: 'Ruhaa Bhalerao', email: 'ruhaa.bhalerao.s.115@kalvium.community', squad: '115', roll_no: 'KAL115004' },
+  { name: 'Pratite Acharya', email: 'pratite.a.s.115@kalvium.community', squad: '115', roll_no: 'KAL115005' },
+  { name: 'Ayush Shriam Awchar', email: 'shriram.awchar.s.115@kalvium.community', squad: '115', roll_no: 'KAL115006' },
+  { name: 'varad shahane', email: 'varad.shahane.s.115@kalvium.community', squad: '115', roll_no: 'KAL115007' },
+  { name: 'Raina George', email: 'raina.george.s.115@kalvium.community', squad: '115', roll_no: 'KAL115008' },
+  { name: 'Shauryvardhan Dadasaheb Undre', email: 'shauryvardhan.undre.s.115@kalvium.community', squad: '115', roll_no: 'KAL115009' },
+  { name: 'Om Jagtap', email: 'om.jagtap.s.115@kalvium.community', squad: '115', roll_no: 'KAL115010' },
+  { name: 'Aadi Jain', email: 'aadi.jain.s.115@kalvium.community', squad: '115', roll_no: 'KAL115011' },
+  { name: 'Parnil Vyawhare', email: 'parnil.vyawahare.s.115@kalvium.community', squad: '115', roll_no: 'KAL115012' },
+  { name: 'Atharv Nitin Hargude', email: 'atharv.hargude.s.115@kalvium.community', squad: '115', roll_no: 'KAL115013' },
+  { name: 'Sasmit Narnaware', email: 'sasmit.narnaware.s.115@kalvium.community', squad: '115', roll_no: 'KAL115014' },
+  { name: 'Rakshaad Ashok Kolhe', email: 'rakshaad.kolhe.s.115@kalvium.community', squad: '115', roll_no: 'KAL115015' },
+  { name: 'Sohini Tandon', email: 'sohini.tandon.s.115@kalvium.community', squad: '115', roll_no: 'KAL115016' },
+  { name: 'Rishikesh Bagal', email: 'rishikesh.bagal.s.115@kalvium.community', squad: '115', roll_no: 'KAL115017' },
+  { name: 'vinayak kulkarni', email: 'vinayak.kulkarni.s.115@kalvium.community', squad: '115', roll_no: 'KAL115018' },
+  { name: 'Gitesh Makunda Chaudhari', email: 'gitesh.c.s.115@kalvium.community', squad: '115', roll_no: 'KAL115019' },
+  { name: 'Devansh Subhash Pujari', email: 'devansh.pujari.s.115@kalvium.community', squad: '115', roll_no: 'KAL115020' },
+  { name: 'Mohammad Aamir Patloo', email: 'mohammad.patloo.s.115@kalvium.community', squad: '115', roll_no: 'KAL115021' },
+  { name: 'Shruti Shardul Itkalkar', email: 'shruti.itkalkar.s.115@kalvium.community', squad: '115', roll_no: 'KAL115022' }
+];
 
 async function clearManagedCollections() {
   await Promise.all([
@@ -117,16 +116,8 @@ async function clearManagedCollections() {
 }
 
 async function seed() {
-  if (!isLocalUri(MONGODB_URI) && process.env.SEED_ALLOW_REMOTE !== '1') {
-    console.error(
-      'Refusing to seed: MONGODB_URI does not look like a local database.\n' +
-      'This wipes every collection. If you really mean to, re-run with SEED_ALLOW_REMOTE=1.'
-    );
-    process.exit(1);
-  }
-
-  await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 });
-  const host = mongoose.connection.host || 'localhost';
+  const conn = await connectDb();
+  const host = conn.host || 'database';
 
   await clearManagedCollections();
 
@@ -140,12 +131,11 @@ async function seed() {
       email: adminEmail,
       password_hash: adminPwHash,
       role: 'admin',
+      can_technical: 1,
+      can_hr: 1,
       active: 1,
     });
   }
-
-  let mentorDocs = [];
-  let studentDocs = [];
 
   if (mode === 'dev' || mode === 'test') {
     for (const a of kalviumAdmins) {
@@ -160,7 +150,7 @@ async function seed() {
       });
     }
 
-    mentorDocs = await User.insertMany(kalviumMentors.map((m) => ({
+    await User.insertMany(kalviumMentors.map((m) => ({
       name: m.name,
       email: m.email.toLowerCase(),
       password_hash: pwHash,
@@ -171,62 +161,29 @@ async function seed() {
       active: 1,
     })));
 
-    studentDocs = await User.insertMany(makeStudents().map((s) => ({
+    await User.insertMany(kalviumStudents.map((s) => ({
       name: s.name,
-      email: s.email,
+      email: s.email.toLowerCase(),
       password_hash: pwHash,
       role: 'student',
       roll_no: s.roll_no,
       squad: s.squad,
-      branch: s.branch,
-      phone: s.phone,
-      resume_url: s.resume_url,
+      branch: 'CSE',
+      phone: '+91 98765 43210',
+      resume_url: `https://drive.google.com/file/d/${s.roll_no}/view`,
       active: 1,
     })));
-
-    // A full week of open slots (yesterday .. +6 days) for every mentor.
-    const techTimes = ['09:00', '09:45', '10:30', '11:15', '12:00'];
-    const hrTimes = ['14:00', '14:45', '15:30', '16:15', '17:00'];
-    const addMin = (t, m) => {
-      const [hh, mm] = t.split(':').map(Number);
-      const tot = hh * 60 + mm + m;
-      return `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`;
-    };
-    const start = h.addDays(h.today(), -1);
-    const slotsToInsert = [];
-    for (let d = 0; d < 8; d++) {
-      const date = h.addDays(start, d);
-      for (const m of mentorDocs) {
-        if (m.can_technical) {
-          for (const t of techTimes) {
-            slotsToInsert.push({
-              mentor_id: m._id, type: 'technical', slot_date: date,
-              start_time: t, end_time: addMin(t, 40), mode: 'Online',
-              location: h.generateMeetingLink('technical'), status: 'open',
-            });
-          }
-        }
-        if (m.can_hr) {
-          for (const t of hrTimes) {
-            slotsToInsert.push({
-              mentor_id: m._id, type: 'hr', slot_date: date,
-              start_time: t, end_time: addMin(t, 40), mode: 'Online',
-              location: h.generateMeetingLink('hr'), status: 'open',
-            });
-          }
-        }
-      }
-    }
-    await Slot.insertMany(slotsToInsert);
   }
 
   // Reporting.
-  const [users, admins, mentors, students, openSlots] = await Promise.all([
+  const [users, admins, mentors, students, openSlots, interviews, evals] = await Promise.all([
     User.countDocuments(),
     User.countDocuments({ role: 'admin' }),
     User.countDocuments({ role: 'mentor' }),
     User.countDocuments({ role: 'student' }),
-    Slot.countDocuments({ status: 'open' }),
+    Slot.countDocuments(),
+    Interview.countDocuments(),
+    Evaluation.countDocuments(),
   ]);
 
   if (mode === 'clean') {
@@ -240,7 +197,7 @@ async function seed() {
   Root Admin:  ${adminEmail}
   ${pwLine}
 
-  Users: ${users}   Students: ${students}   Mentors: ${mentors}   Open slots: ${openSlots}
+  Users: ${users}   Students: ${students}   Mentors: ${mentors}   Slots: ${openSlots}
   =============================================================
   Sign in, then change this password at /profile.
   =============================================================
@@ -250,20 +207,22 @@ async function seed() {
   =============================================================
   [Database Emptied — MongoDB @ ${host}]
   All managed collections cleared (users, slots, interviews,
-  evaluations, feedback, audit logs, password resets, settings).
+  evaluations, feedback, audit logs, settings).
   =============================================================
 `);
   } else {
     console.log(`
   =============================================================
-  [${mode === 'test' ? 'Test' : 'Development'} Dataset Initialized — MongoDB @ ${host}]
+  [Fresh Start Initialized — MongoDB @ ${host}]
   =============================================================
   Every account password: pass123
 
-  Admins:   ${admins}   (root: ${adminEmail})
-  Mentors:  ${mentors}
-  Students: ${students}
-  Open interview slots: ${openSlots}
+  Admins:      ${admins}   (root: ${adminEmail})
+  Mentors:     ${mentors}
+  Students:    ${students}
+  Slots in DB: ${openSlots} (Clean Start - 0 slots)
+  Interviews:  ${interviews}
+  Evaluations: ${evals}
   =============================================================
 `);
   }

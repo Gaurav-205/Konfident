@@ -10,6 +10,23 @@ async function seedUsersOnly() {
 
   const pwHash = bcrypt.hashSync('pass123', 10);
 
+  // 0. Provision Root Admin
+  const rootAdminEmail = (process.env.ADMIN_EMAIL || 'admin@yourinstitution.edu').toLowerCase().trim();
+  const rootAdminName = process.env.ADMIN_NAME || 'Head Administrator';
+  let rootAdmin = await User.findOne({ email: rootAdminEmail });
+  if (!rootAdmin) {
+    await User.create({
+      name: rootAdminName,
+      email: rootAdminEmail,
+      password_hash: pwHash,
+      role: 'admin',
+      can_technical: 1,
+      can_hr: 1,
+      active: 1,
+    });
+    console.log('✓ Provisioned Root Admin:', rootAdminEmail);
+  }
+
   // 1. Provision Admins
   const admins = [
     { name: 'Utkarsha Kasar', email: 'utkarsha.kasar@kalvium.com', can_t: 1, can_hr: 1 },
